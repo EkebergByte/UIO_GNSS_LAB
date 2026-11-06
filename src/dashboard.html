@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GEODNET High-Latitude Telemetry Dashboard</title>
+<style>
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #0D1117; color: #E2E8F0;
+  font-family: "Segoe UI", "DejaVu Sans", Arial, sans-serif; }
+#kpi { display: flex; flex-wrap: wrap; gap: 10px; padding: 14px 18px 8px 18px; }
+.kpi-card { flex: 1 1 150px; background: #141A23; border: 1px solid #2D3748;
+  border-radius: 8px; padding: 10px 14px; }
+.kpi-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: #94A3B8; }
+.kpi-value { font-size: 22px; font-weight: 600; margin-top: 4px; }
+.kpi-sub { font-size: 11px; color: #94A3B8; margin-top: 2px; }
+#tabs { display: flex; gap: 6px; padding: 6px 18px 0 18px; border-bottom: 1px solid #2D3748; }
+.tab-btn { background: transparent; color: #94A3B8; border: 1px solid transparent;
+  border-bottom: 2px solid transparent; padding: 10px 16px; cursor: pointer; font-size: 13px; }
+.tab-btn.active { color: #E2E8F0; border-bottom: 2px solid #66C2A5; }
+main { padding: 14px 18px 26px 18px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.chip { background: #141A23; color: #94A3B8; border: 1px solid #2D3748;
+  border-radius: 6px; padding: 7px 13px; cursor: pointer; font-size: 12px; }
+.chip.active { color: #0D1117; background: #66C2A5; border-color: #66C2A5; font-weight: 600; }
+.chip.filter.active { background: #E5A93B; border-color: #E5A93B; }
+.canvas-wrap { background: #141A23; border: 1px solid #2D3748; border-radius: 8px;
+  padding: 8px; width: 100%; }
+canvas { display: block; width: 100%; height: 62vh; min-height: 420px; cursor: crosshair; }
+.caption { color: #94A3B8; font-size: 12px; margin-top: 10px; line-height: 1.5; }
+.hidden { display: none; }
+#tooltip { position: fixed; pointer-events: none; background: #0D1117E6; border: 1px solid #2D3748;
+  border-radius: 6px; padding: 9px 11px; font-size: 12px; color: #E2E8F0; z-index: 50;
+  max-width: 320px; line-height: 1.5; box-shadow: 0 6px 22px rgba(0,0,0,0.5); }
+#tooltip .tt-name { font-weight: 600; color: #66C2A5; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+select, input[type="text"] { background: #141A23; color: #E2E8F0; border: 1px solid #2D3748;
+  border-radius: 6px; padding: 7px 10px; font-size: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { text-align: left; color: #94A3B8; font-weight: 600; border-bottom: 1px solid #2D3748;
+  padding: 7px 8px; cursor: pointer; position: sticky; top: 0; background: #141A23; }
+td { padding: 6px 8px; border-bottom: 1px solid #1C2530; }
+tr:hover td { background: #182029; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; color: #0D1117; font-weight: 600; }
+#tableScroll { max-height: 56vh; overflow: auto; border: 1px solid #2D3748; border-radius: 8px; }
+.table-note { color: #94A3B8; font-size: 12px; margin: 8px 0; }
+</style>
+</head>
+<body>
+<header id="kpi"></header>
+<nav id="tabs">
+  <button class="tab-btn active" data-tab="1">1 &#183; Network Growth &amp; Historical Series</button>
+  <button class="tab-btn" data-tab="2">2 &#183; Nordic &amp; Norway Spatial Map</button>
+  <button class="tab-btn" data-tab="3">3 &#183; Station Reliability &amp; Data Explorer</button>
+</nav>
+<main>
+  <section id="panel1" class="tab-panel">
+    <div class="controls" id="controls1"></div>
+    <div class="canvas-wrap"><canvas id="canvas1"></canvas></div>
+    <div class="caption" id="caption1"></div>
+  </section>
+  <section id="panel2" class="tab-panel hidden">
+    <div class="controls" id="controls2"></div>
+    <div class="canvas-wrap"><canvas id="canvas2"></canvas></div>
+    <div class="caption" id="caption2"></div>
+  </section>
+  <section id="panel3" class="tab-panel hidden">
+    <div class="controls" id="controls3"></div>
+    <div class="canvas-wrap" id="wrap3"><canvas id="canvas3"></canvas></div>
+    <div id="tableExplorer" class="hidden">
+      <div class="filters" id="tableFilters"></div>
+      <div class="table-note" id="tableNote"></div>
+      <div id="tableScroll"><table id="stationTable"></table></div>
+    </div>
+    <div class="caption" id="caption3"></div>
+  </section>
+</main>
+<div id="tooltip" class="hidden"></div>
+<script>
+const C = { bg: "#0D1117", panel: "#141A23", border: "#2D3748", grid: "#222B38",
+  text: "#E2E8F0", muted: "#94A3B8", active: "#66C2A5", online: "#E5A93B", offline: "#D95F5F" };
+const LAYERS = [ { key: "active", label: "ACTIVE", color: C.active },
+  { key: "online", label: "ONLINE", color: C.online },
+  { key: "offline", label: "OFFLINE", color: C.offline } ];
+let DATA = null;
+const state = { tab: 1, chart: { 1: 0, 2: 0, 3: 0 }, region: "all",
+  map: { scale: 0, offX: 0, offY: 0, fit: false }, sort: { key: "name", dir: 1 } };
+const $ = (id) => document.getElementById(id);
+function setupCanvas(canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.max(1, Math.round(rect.width * dpr));
+  canvas.height = Math.max(1, Math.round(rect.height * dpr));
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx: ctx, w: rect.width, h: rect.height };
+}
+function frame(ctx, w, h) { ctx.clearRect(0, 0, w, h); ctx.fillStyle = C.panel; ctx.fillRect(0, 0, w, h); }
+function heading(ctx, text, sub) {
+  ctx.textAlign = "left"; ctx.fillStyle = C.text;
+  ctx.font = "600 15px Segoe UI, DejaVu Sans, Arial"; ctx.fillText(text, 16, 24);
+  if (sub) { ctx.fillStyle = C.muted; ctx.font = "12px Segoe UI, DejaVu Sans, Arial"; ctx.fillText(sub, 16, 43); }
+}
+function fmt(n) { return (n === null || n === undefined || isNaN(n)) ? "n/a" : Number(n).toLocaleString("en-US"); }
+function pct(n, d) { return d > 0 ? (100 * n / d).toFixed(1) + "%" : "0.0%"; }
+function dayStr(ms) { return ms ? new Date(ms).toISOString().slice(0, 10) : "n/a"; }
+function yAxis(ctx, pad, iw, ih, yMin, yMax, ticks, gridOn) {
+  ctx.strokeStyle = C.border; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, pad.t + ih);
+  ctx.lineTo(pad.l + iw, pad.t + ih); ctx.stroke();
+  const span = (yMax - yMin) || 1;
+  for (let k = 0; k <= ticks; k++) {
+    const value = yMin + span * k / ticks;
+    const y = pad.t + ih * (1 - (value - yMin) / span);
+    if (gridOn) {
+      ctx.strokeStyle = C.grid; ctx.setLineDash([2, 3]);
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + iw, y); ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.fillStyle = C.muted; ctx.font = "11px Segoe UI, DejaVu Sans, Arial"; ctx.textAlign = "right";
+    ctx.fillText(Math.round(value).toLocaleString("en-US"), pad.l - 8, y + 4);
+  }
+}
+function labelX(ctx, pad, iw, ih, labels, maxTicks) {
+  const n = labels.length; if (n < 2) return;
+  const step = Math.max(1, Math.ceil(n / maxTicks));
+  ctx.fillStyle = C.muted; ctx.font = "10px Segoe UI, DejaVu Sans, Arial"; ctx.textAlign = "center";
+  for (let i = 0; i < n; i += step) ctx.fillText(labels[i], pad.l + iw * i / (n - 1), pad.t + ih + 18);
+}
+function legend(ctx, w, items) {
+  ctx.font = "11px Segoe UI, DejaVu Sans, Arial"; ctx.textAlign = "left";
+  let x = w - 16;
+  for (let i = items.length - 1; i >= 0; i--) {
+    const tw = ctx.measureText(items[i].label).width;
+    x -= tw; ctx.fillStyle = C.muted; ctx.fillText(items[i].label, x, 24); x -= 8;
+    ctx.fillStyle = items[i].color; ctx.fillRect(x - 12, 16, 12, 10); x -= 22;
+  }
+}
+function stackedArea(ctx, pad, iw, ih, series, yMin, yMax) {
+  const n = series.length; const span = (yMax - yMin) || 1;
+  const xAt = (i) => pad.l + (n <= 1 ? 0 : iw * i / (n - 1));
+  const yAt = (v) => pad.t + ih * (1 - (v - yMin) / span);
+  const base = new Array(n).fill(0);
+  for (const layer of LAYERS) {
+    ctx.beginPath(); ctx.moveTo(xAt(0), yAt(base[0]));
+    for (let i = 0; i < n; i++) ctx.lineTo(xAt(i), yAt(base[i] + series[i][layer.key]));
+    for (let i = n - 1; i >= 0; i--) ctx.lineTo(xAt(i), yAt(base[i]));
+    ctx.closePath(); ctx.fillStyle = layer.color; ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1;
+    for (let i = 0; i < n; i++) base[i] += series[i][layer.key];
+  }
+  ctx.strokeStyle = C.text; ctx.lineWidth = 1.2; ctx.beginPath();
+  for (let i = 0; i < n; i++) { const y = yAt(base[i]); if (i === 0) ctx.moveTo(xAt(i), y); else ctx.lineTo(xAt(i), y); }
+  ctx.stroke();
+}
+function renderTab1() {
+  const s = setupCanvas($("canvas1")); const ctx = s.ctx, w = s.w, h = s.h;
+  frame(ctx, w, h);
+  const pad = { l: 70, r: 22, t: 56, b: 38 };
+  const iw = w - pad.l - pad.r, ih = h - pad.t - pad.b;
+  if (state.chart[1] === 2) {
+    const bars = DATA.cohort.bars; const n = bars.length;
+    const maxVal = Math.max(1, ...bars.map((b) => b.value));
+    const maxCum = Math.max(1, DATA.cohort.total);
+    heading(ctx, "New Stations Cohort Growth", "daily new joins, cumulative over the epoch (total " + fmt(DATA.cohort.total) + ")");
+    yAxis(ctx, pad, iw, ih, 0, maxVal, 4, true);
+    const bw = iw / Math.max(1, n);
+    for (let i = 0; i < n; i++) {
+      const bh = ih * bars[i].value / maxVal;
+      ctx.fillStyle = C.active; ctx.globalAlpha = 0.85;
+      ctx.fillRect(pad.l + i * bw + 1, pad.t + ih - bh, Math.max(1, bw - 2), bh); ctx.globalAlpha = 1;
+    }
+    ctx.strokeStyle = C.online; ctx.lineWidth = 1.6; ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const x = pad.l + i * bw + bw / 2, y = pad.t + ih * (1 - bars[i].cumulative / maxCum);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    labelX(ctx, pad, iw, ih, bars.map((b) => b.date.slice(5)), 8);
+    legend(ctx, w, [ { label: "cumulative", color: C.online }, { label: "new / day", color: C.active } ]);
+    $("caption1").textContent = "Daily and cumulative new-station cohorts across the observed epoch.";
+    return;
+  }
+  let yMin = 0, yMax = 20000, note = "(full scale 0-20k)";
+  if (state.chart[1] === 1) {
+    const vals = DATA.daily.map((d) => d.active + d.online + d.offline);
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    yMin = Math.max(0, Math.floor((lo - 300) / 500) * 500);
+    yMax = Math.ceil((hi + 300) / 500) * 500; note = "(zoomed scale)";
+  }
+  heading(ctx, state.chart[1] === 1 ? "Daily Status Dynamics (Zoomed)" : "Daily Status Composition (Full Scale)",
+    "stacked ACTIVE / ONLINE / OFFLINE " + note);
+  yAxis(ctx, pad, iw, ih, yMin, yMax, 4, true);
+  stackedArea(ctx, pad, iw, ih, DATA.daily, yMin, yMax);
+  labelX(ctx, pad, iw, ih, DATA.daily.map((d) => d.date.slice(5)), 8);
+  legend(ctx, w, LAYERS.map((l) => { return { label: l.label, color: l.color }; }));
+  $("caption1").textContent = "Stacked daily composition of the globally monitored station count.";
+}
+const MAP = { scale: 0, offX: 0, offY: 0, fit: false, proj: {}, hits: [], dragging: false, lx: 0, ly: 0 };
+function project(lng, lat) {
+  const kx = Math.cos(65 * Math.PI / 180);
+  return [ (lng - 15) * kx, lat ];
+}
+function toScreen(lng, lat) {
+  const p = project(lng, lat);
+  return [ MAP.offX + p[0] * MAP.scale, MAP.offY - p[1] * MAP.scale ];
+}
+function mapFit(w, h) {
+  let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+  const consider = (lng, lat) => {
+    const p = project(lng, lat);
+    minX = Math.min(minX, p[0]); maxX = Math.max(maxX, p[0]);
+    minY = Math.min(minY, p[1]); maxY = Math.max(maxY, p[1]);
+  };
+  for (const iso of Object.keys(DATA.boundaries)) {
+    for (const ring of DATA.boundaries[iso]) for (const pt of ring) consider(pt[0], pt[1]);
+  }
+  for (const st of DATA.stations) consider(st.lng, st.lat);
+  const scale = Math.min((w - 40) / Math.max(1e-6, maxX - minX), (h - 40) / Math.max(1e-6, maxY - minY));
+  MAP.scale = scale;
+  MAP.offX = (w - (maxX - minX) * scale) / 2 - minX * scale;
+  MAP.offY = (h - (maxY - minY) * scale) / 2 + maxY * scale;
+  MAP.proj = {};
+  for (const iso of Object.keys(DATA.boundaries)) {
+    MAP.proj[iso] = DATA.boundaries[iso].map((ring) => ring.map((pt) => toScreen(pt[0], pt[1])));
+  }
+  MAP.fit = true;
+}
+function drawBoundaries(ctx) {
+  for (const iso of Object.keys(MAP.proj)) {
+    ctx.beginPath();
+    for (const ring of MAP.proj[iso]) {
+      let first = true;
+      for (const pt of ring) { if (first) { ctx.moveTo(pt[0], pt[1]); first = false; } else ctx.lineTo(pt[0], pt[1]); }
+    }
+    ctx.fillStyle = "#1A2330"; ctx.fill();
+    ctx.strokeStyle = C.border; ctx.lineWidth = 1; ctx.stroke();
+  }
+}
+function drawParallels(ctx, w) {
+  const marks = [ [60, "#3A4757"], [65, C.online], [70, "#3A4757"], [74, C.offline] ];
+  ctx.setLineDash([5, 4]); ctx.font = "10px Segoe UI, DejaVu Sans, Arial"; ctx.textAlign = "left";
+  for (const m of marks) {
+    const y = toScreen(15, m[0])[1];
+    ctx.strokeStyle = m[1]; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(20, y); ctx.lineTo(w - 20, y); ctx.stroke();
+    ctx.fillStyle = m[1];
+    ctx.fillText(m[0] + "N", 24, y - 4);
+  }
+  ctx.setLineDash([]);
+}
+function drawObservatories(ctx) {
+  ctx.font = "11px Segoe UI, DejaVu Sans, Arial"; ctx.textAlign = "left";
+  for (const obs of DATA.observatories) {
+    const p = toScreen(obs.lng, obs.lat);
+    ctx.beginPath();
+    for (let a = 0; a < 5; a++) {
+      const ang = -Math.PI / 2 + a * Math.PI * 0.8;
+      const inner = a === 0 ? 12 : 12;
+      ctx.lineTo(p[0] + Math.cos(ang) * inner, p[1] + Math.sin(ang) * inner);
+    }
+    ctx.closePath(); ctx.fillStyle = "#F2C14E"; ctx.globalAlpha = 0.95; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.fillStyle = C.text; ctx.fillText(obs.name, p[0] + 14, p[1] + 4);
+  }
+}
+function filteredStations() {
+  return DATA.stations.filter((st) => {
+    if (state.region === "norway") return st.country_iso === "NOR";
+    if (state.region === "auroral") return st.lat >= 65;
+    return true;
+  });
+}
+function statusColor(status) {
+  if (status === "ACTIVE") return C.active;
+  if (status === "ONLINE") return C.online;
+  return C.offline;
+}
+function drawStations(ctx) {
+  MAP.hits = [];
+  for (const st of filteredStations()) {
+    const p = toScreen(st.lng, st.lat);
+    ctx.beginPath(); ctx.arc(p[0], p[1], 3.2, 0, Math.PI * 2);
+    ctx.fillStyle = statusColor(st.status); ctx.globalAlpha = 0.9; ctx.fill(); ctx.globalAlpha = 1;
+    MAP.hits.push({ x: p[0], y: p[1], st: st });
+  }
+}
+function showTooltip(evt, st) {
+  const tt = $("tooltip");
+  tt.classList.remove("hidden");
+  tt.innerHTML = "<div class='tt-name'>" + st.name + "</div>Station ID: " + fmt(st.station_id) +
+    "<br>Country: " + st.country_iso + "<br>Zone: " + st.zone + "<br>Status: " + st.status +
+    "<br>Class: " + st.station_class + "<br>Lat / Lng: " + st.lat.toFixed(4) + " / " + st.lng.toFixed(4) +
+    "<br>Dist OSLS / TROM / NYA2 km: " + fmt(st.dist_osls_km) + " / " + fmt(st.dist_trom_km) + " / " + fmt(st.dist_nya2_km) +
+    "<br>Flaps: " + fmt(st.flaps) + "<br>First Seen: " + dayStr(st.first_seen_ms) +
+    "<br>Uptime: " + (st.uptime_pct === null || st.uptime_pct === undefined ? "n/a" : st.uptime_pct.toFixed(1) + "%");
+  tt.style.left = (evt.clientX + 16) + "px";
+  tt.style.top = (evt.clientY + 16) + "px";
+}
+function hideTooltip() { $("tooltip").classList.add("hidden"); }
+function reproject() {
+  MAP.proj = {};
+  for (const iso of Object.keys(DATA.boundaries)) {
+    MAP.proj[iso] = DATA.boundaries[iso].map((ring) => ring.map((pt) => toScreen(pt[0], pt[1])));
+  }
+}
+function bindMapEvents() {
+  const cv = $("canvas2");
+  cv.addEventListener("mousedown", (e) => { MAP.dragging = true; MAP.lx = e.clientX; MAP.ly = e.clientY; });
+  window.addEventListener("mouseup", () => { MAP.dragging = false; });
+  cv.addEventListener("mousemove", (e) => {
+    if (state.tab !== 2 || state.chart[2] !== 0) return;
+    if (MAP.dragging) {
+      MAP.offX += e.clientX - MAP.lx; MAP.offY += e.clientY - MAP.ly;
+      MAP.lx = e.clientX; MAP.ly = e.clientY;
+      reproject(); renderTab2(); hideTooltip(); return;
+    }
+    const rect = cv.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    let best = null, bestD = 11;
+    for (const hit of MAP.hits) {
+      const d = Math.sqrt((hit.x - mx) * (hit.x - mx) + (hit.y - my) * (hit.y - my));
+      if (d < bestD) { bestD = d; best = hit.st; }
+    }
+    if (best) showTooltip(e, best); else hideTooltip();
+  });
+  cv.addEventListener("wheel", (e) => {
+    if (state.tab !== 2 || state.chart[2] !== 0) return;
+    e.preventDefault();
+    const rect = cv.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+    MAP.offX = mx + (MAP.offX - mx) * factor;
+    MAP.offY = my + (MAP.offY - my) * factor;
+    MAP.scale *= factor;
+    reproject(); renderTab2(); hideTooltip();
+  }, { passive: false });
+  cv.addEventListener("mouseleave", hideTooltip);
+}
+function drawHbars(ctx, w, h, rows, title, sub) {
+  heading(ctx, title, sub);
+  const pad = { l: 165, r: 120, t: 70, b: 26 };
+  const iw = w - pad.l - pad.r;
+  const maxTotal = Math.max(1, ...rows.map((r) => r.total));
+  const rowH = Math.min(54, (h - pad.t - pad.b) / Math.max(1, rows.length));
+  rows.forEach((r, idx) => {
+    const y = pad.t + idx * rowH;
+    const barH = rowH * 0.58;
+    let x = pad.l;
+    for (const status of ["ACTIVE", "ONLINE", "OFFLINE"]) {
+      const val = r.counts[status] || 0;
+      const bw = iw * val / maxTotal;
+      ctx.fillStyle = statusColor(status);
+      ctx.fillRect(x, y, bw, barH);
+      if (bw > 30 && val > 0) {
+        ctx.fillStyle = "#0D1117"; ctx.font = "11px Segoe UI, DejaVu Sans, Arial"; ctx.textAlign = "center";
+        ctx.fillText(String(val), x + bw / 2, y + barH / 2 + 4);
+      }
+      x += bw;
+    }
+    ctx.fillStyle = C.text; ctx.font = "12px Segoe UI, DejaVu Sans, Arial"; ctx.textAlign = "right";
+    ctx.fillText(r.label, pad.l - 12, y + barH / 2 + 4);
+    ctx.fillStyle = C.muted; ctx.textAlign = "left";
+    ctx.fillText("n=" + r.total + "   " + pct(r.counts.ACTIVE, r.total) + " ACTIVE", x + 12, y + barH / 2 + 4);
+  });
+  legend(ctx, w, LAYERS.map((l) => { return { label: l.label, color: l.color }; }));
+}
+function groupRows(order, key) {
+  return order.map((label) => {
+    const list = DATA.stations.filter((s) => key(s) === label);
+    const counts = { ACTIVE: 0, ONLINE: 0, OFFLINE: 0 };
+    list.forEach((s) => { if (counts[s.status] !== undefined) counts[s.status]++; });
+    return { label: label.replace("NO-", ""), counts: counts, total: list.length };
+  });
+}
+function renderTab2() {
+  const s = setupCanvas($("canvas2")); const ctx = s.ctx, w = s.w, h = s.h;
+  frame(ctx, w, h);
+  if (state.chart[2] === 0) {
+    if (!MAP.fit) mapFit(w, h);
+    drawBoundaries(ctx); drawParallels(ctx, w); drawObservatories(ctx); drawStations(ctx);
+    heading(ctx, "Interactive Geodetic Map (Natural Earth 1:10m)", "scroll to zoom, drag to pan, hover a station for detail");
+    $("caption2").textContent = filteredStations().length + " stations shown. Parallels 60 / 65 (auroral) / 70 / 74 (Svalbard) N; observatories OSLS, TROM, NYA2.";
+    return;
+  }
+  if (state.chart[2] === 1) {
+    drawHbars(ctx, w, h, groupRows(["SWE", "NOR", "DNK", "FIN", "ISL"], (s) => s.country_iso),
+      "Sovereign States Breakdown", "SWE / NOR / DNK / FIN / ISL with exact counts and shares");
+    $("caption2").textContent = "Nordic sovereign-state status structure.";
+    return;
+  }
+  drawHbars(ctx, w, h,
+    groupRows(["NO-South-Oslo-Ostlandet", "NO-South-West-Vestlandet", "NO-North-Auroral", "NO-Central-Trondelag", "NO-Svalbard-Arctic"], (s) => s.zone),
+    "Kingdom of Norway - 5 Latitudinal Zones", "Oslo-Ostlandet / Vestlandet / North-Auroral / Trondelag / Svalbard");
+  $("caption2").textContent = "Norwegian research-zone status structure.";
+}
+function drawFlapHistogram(ctx, w, h) {
+  const f = DATA.flaps;
+  heading(ctx, "Status Flap Frequency Distribution", "stations per transition-frequency bin (global vs nordic)");
+  const pad = { l: 70, r: 22, t: 70, b: 40 };
+  const iw = w - pad.l - pad.r, ih = h - pad.t - pad.b;
+  const maxVal = Math.max(1, ...f.global, ...f.nordic);
+  yAxis(ctx, pad, iw, ih, 0, maxVal, 4, true);
+  const groups = f.labels.length;
+  const gw = iw / groups;
+  const bw = gw * 0.32;
+  for (let i = 0; i < groups; i++) {
+    const x0 = pad.l + gw * i + gw * 0.5 - bw;
+    const h1 = ih * f.global[i] / maxVal;
+    const h2 = ih * f.nordic[i] / maxVal;
+    ctx.fillStyle = "#5C6B7A"; ctx.fillRect(x0, pad.t + ih - h1, bw, h1);
+    ctx.fillStyle = C.active; ctx.fillRect(x0 + bw + 3, pad.t + ih - h2, bw, h2);
+    ctx.fillStyle = C.muted; ctx.font = "10px Segoe UI, DejaVu Sans, Arial"; ctx.textAlign = "center";
+    ctx.fillText(f.labels[i], pad.l + gw * i + gw / 2, pad.t + ih + 18);
+    ctx.fillStyle = C.text; ctx.font = "10px Segoe UI, DejaVu Sans, Arial";
+    ctx.fillText(f.global[i] + " / " + f.nordic[i], pad.l + gw * i + gw / 2, pad.t + ih - Math.max(h1, h2) - 6);
+  }
+  legend(ctx, w, [ { label: "nordic", color: C.active }, { label: "global", color: "#5C6B7A" } ]);
+  $("caption3").textContent = "Transition-frequency histogram (global / nordic). ONLINE-gated stations skew toward higher flap counts.";
+}
+function drawBands(ctx, w, h) {
+  const bands = DATA.bands;
+  heading(ctx, "High-Latitude Availability by Latitude Band", "stacked status composition and mean flap count per 3-degree band");
+  const pad = { l: 70, r: 60, t: 70, b: 42 };
+  const iw = w - pad.l - pad.r, ih = h - pad.t - pad.b;
+  const maxTotal = Math.max(1, ...bands.map((b) => b.total));
+  const maxFlaps = Math.max(1, ...bands.map((b) => b.meanFlaps));
+  yAxis(ctx, pad, iw, ih, 0, maxTotal, 4, true);
+  const bw = iw / Math.max(1, bands.length);
+  bands.forEach((b, i) => {
+    let base = pad.t + ih;
+    for (const layer of LAYERS) {
+      const bh = ih * b[layer.key] / maxTotal;
+      ctx.fillStyle = layer.color; ctx.fillRect(pad.l + i * bw + 3, base - bh, bw - 6, bh);
+      base -= bh;
+    }
+  });
+  ctx.strokeStyle = "#F2C14E"; ctx.lineWidth = 1.6; ctx.beginPath();
+  bands.forEach((b, i) => {
+    const x = pad.l + i * bw + bw / 2;
+    const y = pad.t + ih * (1 - b.meanFlaps / maxFlaps);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.fillStyle = C.muted; ctx.font = "10px Segoe UI, DejaVu Sans, Arial"; ctx.textAlign = "center";
+  bands.forEach((b, i) => { if (b.total > 0) ctx.fillText(b.label, pad.l + i * bw + bw / 2, pad.t + ih + 18); });
+  legend(ctx, w, [ { label: "mean flaps", color: "#F2C14E" } ].concat(LAYERS.map((l) => { return { label: l.label, color: l.color }; })));
+  $("caption3").textContent = "Availability and flap frequency across latitude bands from 54 to 81 N (mean flaps on secondary scale).";
+}
+const TABLE = { key: "name", dir: 1, ready: false };
+function zoneList() {
+  const seen = {};
+  DATA.stations.forEach((st) => { seen[st.zone] = true; });
+  return Object.keys(seen).sort();
+}
+function tableInit() {
+  if (TABLE.ready) return;
+  const zones = zoneList().map((z) => "<option value='" + z + "'>" + z + "</option>").join("");
+  $("tableFilters").innerHTML =
+    "<select id='f-country'><option value=''>All countries</option><option>NOR</option><option>SWE</option><option>FIN</option><option>DNK</option><option>ISL</option></select>" +
+    "<select id='f-status'><option value=''>All statuses</option><option>ACTIVE</option><option>ONLINE</option><option>OFFLINE</option></select>" +
+    "<select id='f-class'><option value=''>All classes</option><option>GEODNET_MINER</option><option>PUBLIC_IGS_EUREF</option></select>" +
+    "<select id='f-zone'><option value=''>All zones</option>" + zones + "</select>" +
+    "<input type='text' id='f-search' placeholder='search name or station ID'>";
+  ["f-country", "f-status", "f-class", "f-zone"].forEach((id) => $(id).addEventListener("change", renderTable));
+  $("f-search").addEventListener("input", renderTable);
+  TABLE.ready = true;
+}
+function tableFiltered() {
+  const country = $("f-country").value, status = $("f-status").value, cls = $("f-class").value;
+  const zone = $("f-zone").value, query = $("f-search").value.trim().toLowerCase();
+  return DATA.stations.filter((st) => {
+    if (country && st.country_iso !== country) return false;
+    if (status && st.status !== status) return false;
+    if (cls && st.station_class !== cls) return false;
+    if (zone && st.zone !== zone) return false;
+    if (query && st.name.toLowerCase().indexOf(query) < 0 && String(st.station_id).indexOf(query) < 0) return false;
+    return true;
+  });
+}
+function renderTable() {
+  tableInit();
+  const rows = tableFiltered();
+  const dir = TABLE.dir;
+  rows.sort((a, b) => {
+    const av = a[TABLE.key], bv = b[TABLE.key];
+    if (typeof av === "number" && typeof bv === "number") return (av - bv) * dir;
+    return String(av).localeCompare(String(bv)) * dir;
+  });
+  const keys = ["name", "station_id", "country_iso", "zone", "status", "station_class", "lat", "lng", "dist_osls_km", "dist_trom_km", "dist_nya2_km", "flaps", "uptime_pct"];
+  const labels = ["Name", "ID", "Country", "Zone", "Status", "Class", "Lat", "Lng", "OSLS km", "TROM km", "NYA2 km", "Flaps", "Uptime %"];
+  let html = "<thead><tr>" + keys.map((k, i) => "<th data-key='" + k + "'>" + labels[i] + "</th>").join("") + "</tr></thead><tbody>";
+  rows.forEach((st) => {
+    html += "<tr><td>" + st.name + "</td><td>" + st.station_id + "</td><td>" + st.country_iso + "</td><td>" + st.zone +
+      "</td><td><span class='badge' style='background:" + statusColor(st.status) + "'>" + st.status + "</span></td><td>" + st.station_class +
+      "</td><td>" + st.lat.toFixed(4) + "</td><td>" + st.lng.toFixed(4) + "</td><td>" + fmt(st.dist_osls_km) + "</td><td>" +
+      fmt(st.dist_trom_km) + "</td><td>" + fmt(st.dist_nya2_km) + "</td><td>" + fmt(st.flaps) + "</td><td>" +
+      (st.uptime_pct === null || st.uptime_pct === undefined ? "n/a" : st.uptime_pct.toFixed(1)) + "</td></tr>";
+  });
+  $("stationTable").innerHTML = html + "</tbody>";
+  Array.prototype.forEach.call($("stationTable").querySelectorAll("th"), (th) => {
+    th.addEventListener("click", () => {
+      const key = th.getAttribute("data-key");
+      if (TABLE.key === key) TABLE.dir *= -1; else { TABLE.key = key; TABLE.dir = 1; }
+      renderTable();
+    });
+  });
+  $("tableNote").textContent = rows.length + " of " + DATA.stations.length + " stations shown (click a column header to sort).";
+  $("caption3").textContent = "Full filterable and sortable station explorer.";
+}
+function renderTab3() {
+  const isTable = state.chart[3] === 2;
+  $("wrap3").classList.toggle("hidden", isTable);
+  $("tableExplorer").classList.toggle("hidden", !isTable);
+  if (isTable) { renderTable(); return; }
+  const s = setupCanvas($("canvas3")); const ctx = s.ctx, w = s.w, h = s.h;
+  frame(ctx, w, h);
+  if (state.chart[3] === 0) drawFlapHistogram(ctx, w, h);
+  else drawBands(ctx, w, h);
+}
+const CHIPS = {
+  1: [ "Daily Status Composition (0-20k)", "Daily Status Dynamics (Zoomed 16k-20k)", "New Stations Cohort Growth" ],
+  2: [ "Interactive Geodetic Map", "Sovereign States Breakdown", "Norwegian Latitude Zones" ],
+  3: [ "Status Flap Frequency", "Availability by Latitude Band", "Station Table Explorer" ]
+};
+const REGIONS = [ { id: "all", label: "All Nordic [302]" }, { id: "norway", label: "Norway Only [92]" },
+  { id: "auroral", label: "Auroral & Svalbard >=65N [17]" } ];
+function buildChips() {
+  for (const tab of [1, 2, 3]) {
+    const box = $("controls" + tab);
+    CHIPS[tab].forEach((label, i) => {
+      const btn = document.createElement("button");
+      btn.className = "chip" + (state.chart[tab] === i ? " active" : "");
+      btn.setAttribute("data-kind", "chart");
+      btn.textContent = label;
+      btn.addEventListener("click", () => {
+        state.chart[tab] = i;
+        Array.prototype.forEach.call(box.querySelectorAll(".chip[data-kind='chart']"), (x) => x.classList.remove("active"));
+        btn.classList.add("active");
+        if (tab === 2) MAP.fit = false;
+        render();
+      });
+      box.appendChild(btn);
+    });
+  }
+  const box2 = $("controls2");
+  const spacer = document.createElement("span");
+  spacer.style.flex = "1";
+  box2.appendChild(spacer);
+  REGIONS.forEach((rg) => {
+    const btn = document.createElement("button");
+    btn.className = "chip filter" + (rg.id === "all" ? " active" : "");
+    btn.textContent = rg.label;
+    btn.addEventListener("click", () => {
+      state.region = rg.id;
+      Array.prototype.forEach.call(box2.querySelectorAll(".chip.filter"), (x) => x.classList.remove("active"));
+      btn.classList.add("active");
+      MAP.fit = false;
+      render();
+    });
+    box2.appendChild(btn);
+  });
+}
+function buildKpi() {
+  const t = DATA.totals;
+  const cards = [
+    { label: "Total Global", value: fmt(t.global), sub: "reference stations" },
+    { label: "Active RTK-Ready", value: fmt(t.active), sub: pct(t.active, t.global) + " of global" },
+    { label: "Online QC-Gated", value: fmt(t.online), sub: pct(t.online, t.global) + " of global" },
+    { label: "Offline", value: fmt(t.offline), sub: pct(t.offline, t.global) + " of global" },
+    { label: "Norway Total", value: fmt(t.norway), sub: "Kingdom of Norway" },
+    { label: "Nordic Total", value: fmt(t.nordic), sub: "5 sovereign states" }
+  ];
+  $("kpi").innerHTML = cards.map((c) => "<div class='kpi-card'><div class='kpi-label'>" + c.label +
+    "</div><div class='kpi-value'>" + c.value + "</div><div class='kpi-sub'>" + c.sub + "</div></div>").join("");
+}
+function render() {
+  $("panel1").classList.toggle("hidden", state.tab !== 1);
+  $("panel2").classList.toggle("hidden", state.tab !== 2);
+  $("panel3").classList.toggle("hidden", state.tab !== 3);
+  Array.prototype.forEach.call(document.querySelectorAll(".tab-btn"), (b) => {
+    b.classList.toggle("active", Number(b.getAttribute("data-tab")) === state.tab);
+  });
+  hideTooltip();
+  if (state.tab === 1) renderTab1();
+  else if (state.tab === 2) renderTab2();
+  else renderTab3();
+}
+function bindTabs() {
+  Array.prototype.forEach.call(document.querySelectorAll(".tab-btn"), (b) => {
+    b.addEventListener("click", () => { state.tab = Number(b.getAttribute("data-tab")); render(); });
+  });
+}
+function init() {
+  buildKpi();
+  buildChips();
+  bindTabs();
+  bindMapEvents();
+  window.addEventListener("resize", () => { if (state.tab === 2) MAP.fit = false; render(); });
+  render();
+}
+fetch("/api/telemetry").then((r) => r.json()).then((d) => { DATA = d; init(); }).catch((err) => {
+  document.body.innerHTML = "<p style='padding:24px;color:#D95F5F'>Failed to load /api/telemetry: " + err + "</p>";
+});
+</script>
+</body>
+</html>
