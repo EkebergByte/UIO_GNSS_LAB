@@ -40,6 +40,7 @@ BAND_WIDTH = 3.0
 BAND_MIN = 54.0
 BAND_MAX = 81.0
 NORTH_LAT = 65.0
+MIN_MAP_LAT = 53.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -146,7 +147,9 @@ def load_boundaries() -> dict:
                 if math.isfinite(lng) and math.isfinite(lat):
                     simplified.append([lng, lat])
             if len(simplified) >= 3:
-                rings_out.append(simplified)
+                max_lat = max(point[1] for point in simplified)
+                if max_lat >= MIN_MAP_LAT:
+                    rings_out.append(simplified)
         result[str(iso)] = rings_out
     return result
 
