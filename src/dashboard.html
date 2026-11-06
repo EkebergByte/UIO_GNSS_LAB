@@ -264,7 +264,7 @@ function drawObservatories(ctx) {
 function filteredStations() {
   return DATA.stations.filter((st) => {
     if (state.region === "norway") return st.country_iso === "NOR";
-    if (state.region === "auroral") return st.lat >= 65;
+    if (state.region === "auroral") return st.country_iso === "NOR" && st.lat >= 65;
     return true;
   });
 }
