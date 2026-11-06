@@ -76,16 +76,37 @@ low signal-to-noise ratio `SNR < 32 dB-Hz`, and data rejected with QC `code 310`
 
 ---
 
-## 3. Live Repository Dataset (Snapshot: 2026-11-06 15:10:03 UTC)
+## 3. Empirical Network Dataset (Observation Epoch: 2026-11-06 15:24:53 UTC)
 
-Global network at snapshot time: **19566** reference stations. Within the Nordic
-domain the classifier resolves **302** verified stations across five sovereign states,
-of which **92** lie in the Kingdom of Norway. Membership is established by
+![Nordic GNSS Telemetry Overview](assets/geodnet_telemetry_overview.png)
+
+The reference observation epoch comprises **19566** stations globally. Within the
+Nordic domain the classifier resolves **302** verified stations across five sovereign
+states, of which **92** lie in the Kingdom of Norway. Membership is established by
 **point-in-multipolygon** testing against the Natural Earth 1:10m Admin-0 boundaries, with a
 **20 km coastal-closure buffer** that re-attributes fjord and skjaergaard stations whose rounded
 coordinates fall just outside the land polygon.
 
-### 3.1 Nordic stations by sovereign state
+### 3.1 Visual Telemetry & Reliability Architecture (Panels A–D)
+
+The composite figure summarises the network state across four orthogonal views:
+
+- **Panel A — Network accumulation and status composition.** A stacked time series of the globally
+  monitored station count partitioned into `ACTIVE`, `ONLINE` and `OFFLINE`, with the
+  observation-epoch composition annotated (ACTIVE 17 223 [88.0 %], ONLINE 1 672 [8.5 %],
+  OFFLINE 671 [3.4 %]).
+- **Panel B — Nordic distribution and Norwegian latitude zones.** Stacked horizontal bars giving
+  the status structure for the five Nordic sovereign states (`SWE`, `NOR`, `DNK`, `FIN`, `ISL`) and
+  for the five Norwegian research zones.
+- **Panel C — Empirical reliability versus the QC gate.** Distribution of an event-derived uptime
+  proxy (%) and of status-transition frequency for stations currently `ACTIVE` versus those held at
+  the quality gate (`ONLINE`), against the 90.0 % epoch-completeness reference.
+- **Panel D — High-latitude profile and IGS/EUREF baselines.** Geodetic distance from each Nordic
+  station to its nearest IGS/EUREF observatory as a function of latitude, marking the auroral-oval
+  boundary (65° N), the Svalbard high-Arctic threshold (74° N) and the reference observatories
+  `OSLS`, `TROM` and `NYA2`.
+
+### 3.2 Nordic stations by sovereign state
 
 | ISO | Country | Stations | Share |
 | :--- | :--- | ---: | ---: |
@@ -95,7 +116,7 @@ coordinates fall just outside the land polygon.
 | DNK | Denmark | 34 | 11.3% |
 | ISL | Iceland | 8 | 2.6% |
 
-### 3.2 Kingdom of Norway — research zones
+### 3.3 Kingdom of Norway — research zones
 
 | Zone | Stations |
 | :--- | ---: |
@@ -105,7 +126,7 @@ coordinates fall just outside the land polygon.
 | NO-South-West-Vestlandet | 20 |
 | NO-Svalbard-Arctic | 2 |
 
-### 3.3 Hardware class split (Nordic region)
+### 3.4 Hardware class split (Nordic region)
 
 | Station class | Stations |
 | :--- | ---: |
@@ -122,15 +143,19 @@ UIO_GNSS_LAB/
 ├── LICENSE                            MIT license
 ├── .gitignore                         Ignore rules (raw caches, tooling, IDE)
 ├── src/
-│   └── nordic_station_classifier.py   Phase 1 classifier + report/README generator
+│   ├── nordic_station_classifier.py       Phase 1 classifier + report/README generator
+│   └── generate_telemetry_figures.py      Telemetry visualisation suite (Panels A-D)
 ├── data/
-│   ├── nordic_boundaries_10m.geojson  Natural Earth 1:10m polygons (10 states)
-│   ├── nordic_geodnet_stations.csv    All Nordic stations
-│   └── norway_only_stations.csv       Norwegian stations (sorted by dist_to_osls_km)
-└── docs/
-    ├── report_template.md             Analytical report source template
-    ├── NORDIC_NETWORK_REPORT.md       Generated analytical report
-    └── readme_template.md             README source template
+│   ├── nordic_boundaries_10m.geojson      Natural Earth 1:10m polygons (10 states)
+│   ├── nordic_geodnet_stations.csv        All Nordic stations
+│   └── norway_only_stations.csv           Norwegian stations (sorted by dist_to_osls_km)
+├── docs/
+│   ├── report_template.md                 Analytical report source template
+│   ├── NORDIC_NETWORK_REPORT.md           Generated analytical report
+│   └── readme_template.md                 README source template
+└── assets/
+    ├── geodnet_telemetry_overview.png     Composite telemetry figure (300 DPI)
+    └── geodnet_telemetry_overview.svg     Vector version
 ```
 
 The classifier is dependency-free (Python standard library only). Two large inputs —
@@ -141,9 +166,10 @@ tracked and are regenerated on first use.
 
 ## 5. Getting Started
 
-Requirements: **Python 3.11+** (no third-party packages).
+Requirements: **Python 3.11+**. The classifier uses only the standard library; the visualisation
+suite additionally requires `matplotlib`.
 
-**Default — instant regeneration from local cache (zero HTTP requests):**
+**Default mode — deterministic regeneration from local artefacts (no network I/O):**
 
 ```bash
 python src/nordic_station_classifier.py
@@ -152,15 +178,24 @@ python src/nordic_station_classifier.py
 Reads the existing `data/global_stations_snapshot.json` and `data/nordic_boundaries_10m.geojson`
 from disk and rewrites the CSV datasets, `docs/NORDIC_NETWORK_REPORT.md` and `README.md`.
 
-**Live network refresh (explicit opt-in):**
+**Network re-observation (explicit opt-in):**
 
 ```bash
 python src/nordic_station_classifier.py --refresh
 ```
 
-Fetches a single fresh snapshot from `https://rtk.geodnet.com/api/v2/coverage_stations`, overwrites
-`data/global_stations_snapshot.json` atomically, and recomputes every table — automatically
-updating the CSVs, the report and this `README.md`.
+Retrieves a single reference-epoch observation from `https://rtk.geodnet.com/api/v2/coverage_stations`,
+overwrites `data/global_stations_snapshot.json` atomically, and recomputes every table — refreshing
+the CSVs, the analytical report and this `README.md`.
+
+**Telemetry figure regeneration:**
+
+```bash
+python src/generate_telemetry_figures.py
+```
+
+Renders the four-panel composite figure to `assets/geodnet_telemetry_overview.png` (300 DPI) and
+`assets/geodnet_telemetry_overview.svg` from the local artefacts **without network access**.
 
 ---
 

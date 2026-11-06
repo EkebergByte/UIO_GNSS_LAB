@@ -8,3 +8,6 @@ __pycache__/
 *.pyc
 .vscode/
 .env
+!assets/
+!assets/geodnet_telemetry_overview.png
+!assets/geodnet_telemetry_overview.svg
