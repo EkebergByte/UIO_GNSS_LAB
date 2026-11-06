@@ -26,13 +26,15 @@ CSV_FILE = os.path.join(DATA_DIR, "nordic_geodnet_stations.csv")
 NORWAY_CSV_FILE = os.path.join(DATA_DIR, "norway_only_stations.csv")
 REPORT_TEMPLATE = os.path.join(BASE_DIR, "docs", "report_template.md")
 REPORT_FILE = os.path.join(BASE_DIR, "docs", "NORDIC_NETWORK_REPORT.md")
+README_TEMPLATE = os.path.join(BASE_DIR, "docs", "readme_template.md")
+README_FILE = os.path.join(BASE_DIR, "README.md")
 
-UIO_LAT = 59.9400
-UIO_LNG = 10.7200
 OSLS_LAT = 59.7366
 OSLS_LNG = 10.3683
 TROM_LAT = 69.6627
 TROM_LNG = 18.9396
+NYA2_LAT = 78.9296
+NYA2_LNG = 11.8653
 
 CANDIDATE_MIN_LAT = 53.0
 CANDIDATE_MAX_LAT = 82.0
@@ -86,9 +88,9 @@ CSV_HEADER = [
     "match_method",
     "station_class",
     "zone",
-    "dist_to_uio_km",
     "dist_to_osls_km",
     "dist_to_trom_km",
+    "dist_to_nya2_km",
 ]
 
 
@@ -112,9 +114,9 @@ class StationRow:
     match_method: str
     station_class: str
     zone: str
-    dist_to_uio_km: float
     dist_to_osls_km: float
     dist_to_trom_km: float
+    dist_to_nya2_km: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -339,8 +341,8 @@ def fetch_json(url: str, timeout: int) -> dict:
     return json.loads(payload.decode("utf-8"))
 
 
-def load_or_fetch_snapshot() -> tuple:
-    if os.path.isfile(SNAPSHOT_FILE) and os.path.getsize(SNAPSHOT_FILE) > 0:
+def load_or_fetch_snapshot(refresh: bool) -> tuple:
+    if not refresh and os.path.isfile(SNAPSHOT_FILE) and os.path.getsize(SNAPSHOT_FILE) > 0:
         with open(SNAPSHOT_FILE, "r", encoding="utf-8") as handle:
             snapshot = json.load(handle)
         return snapshot.get("data", []), "local-cache"
@@ -356,6 +358,14 @@ def load_or_fetch_snapshot() -> tuple:
     }
     atomic_write_text(SNAPSHOT_FILE, json.dumps(snapshot, indent=2))
     return stations, "live-fetch"
+
+
+def snapshot_fetched_at() -> str:
+    if os.path.isfile(SNAPSHOT_FILE) and os.path.getsize(SNAPSHOT_FILE) > 0:
+        with open(SNAPSHOT_FILE, "r", encoding="utf-8") as handle:
+            snapshot = json.load(handle)
+        return str(snapshot.get("fetched_at_utc", "unknown"))
+    return "not-available"
 
 
 def load_or_fetch_ne_raw() -> tuple:
@@ -517,9 +527,9 @@ def build_row(station: Station, iso: str, method: str) -> StationRow:
         match_method=method,
         station_class=station_class(station.name),
         zone=zone,
-        dist_to_uio_km=safe_round(haversine_km(station.lat, station.lng, UIO_LAT, UIO_LNG), 4),
         dist_to_osls_km=safe_round(haversine_km(station.lat, station.lng, OSLS_LAT, OSLS_LNG), 4),
         dist_to_trom_km=safe_round(haversine_km(station.lat, station.lng, TROM_LAT, TROM_LNG), 4),
+        dist_to_nya2_km=safe_round(haversine_km(station.lat, station.lng, NYA2_LAT, NYA2_LNG), 4),
     )
 
 
@@ -539,9 +549,9 @@ def build_csv(rows: list) -> str:
                 row.match_method,
                 row.station_class,
                 row.zone,
-                f"{row.dist_to_uio_km:.4f}",
                 f"{row.dist_to_osls_km:.4f}",
                 f"{row.dist_to_trom_km:.4f}",
+                f"{row.dist_to_nya2_km:.4f}",
             ]
         )
     return buffer.getvalue()
@@ -608,16 +618,16 @@ def public_list_markdown(rows: list) -> str:
     return "\n".join(lines)
 
 
-def nearest_markdown(rows: list, limit: int) -> str:
-    ordered = sorted(rows, key=lambda r: r.dist_to_uio_km)[:limit]
+def southern_markdown(rows: list, limit: int) -> str:
+    ordered = sorted(rows, key=lambda r: r.dist_to_osls_km)[:limit]
     lines = [
-        "| Rank | Station ID | Name | Status | Class | Zone | Lat | Lng | Dist UiO km |",
+        "| Rank | Station ID | Name | Status | Class | Zone | Lat | Lng | Dist OSLS km |",
         "| ---: | ---: | :--- | :--- | :--- | :--- | ---: | ---: | ---: |",
     ]
     for index, row in enumerate(ordered, start=1):
         lines.append(
             f"| {index} | {row.station_id} | {row.name} | {row.status} | {row.station_class} | "
-            f"{row.zone} | {row.lat:.4f} | {row.lng:.4f} | {row.dist_to_uio_km:.2f} |"
+            f"{row.zone} | {row.lat:.4f} | {row.lng:.4f} | {row.dist_to_osls_km:.2f} |"
         )
     return "\n".join(lines)
 
@@ -636,10 +646,10 @@ def northern_markdown(rows: list, limit: int) -> str:
     return "\n".join(lines)
 
 
-def render_report(context: dict) -> str:
-    if not os.path.isfile(REPORT_TEMPLATE):
+def render_template(context: dict, template_path: str) -> str:
+    if not os.path.isfile(template_path):
         return ""
-    with open(REPORT_TEMPLATE, "r", encoding="utf-8") as handle:
+    with open(template_path, "r", encoding="utf-8") as handle:
         template = handle.read()
     output = template
     for key in context:
@@ -648,8 +658,10 @@ def render_report(context: dict) -> str:
 
 
 def main() -> int:
+    refresh = "--refresh" in sys.argv
     os.makedirs(DATA_DIR, exist_ok=True)
-    raw_stations, snap_source = load_or_fetch_snapshot()
+    print(f"pre-run snapshot fetched_at_utc: {snapshot_fetched_at()}")
+    raw_stations, snap_source = load_or_fetch_snapshot(refresh)
     if not isinstance(raw_stations, list):
         print("unexpected snapshot structure", file=sys.stderr)
         return 1
@@ -678,11 +690,11 @@ def main() -> int:
             continue
         rows.append(build_row(station, iso, method))
 
-    rows.sort(key=lambda item: (item.country_iso, item.dist_to_uio_km))
+    rows.sort(key=lambda item: (item.country_iso, item.dist_to_osls_km))
     atomic_write_text(CSV_FILE, build_csv(rows))
 
     norway_rows = sorted(
-        [row for row in rows if row.country_iso == "NOR"], key=lambda row: row.dist_to_uio_km
+        [row for row in rows if row.country_iso == "NOR"], key=lambda row: row.dist_to_osls_km
     )
     atomic_write_text(NORWAY_CSV_FILE, build_csv(norway_rows))
 
@@ -723,12 +735,15 @@ def main() -> int:
         "PUBLIC_TOTAL": str(class_counts.get("PUBLIC_IGS_EUREF", 0)),
         "SVALBARD_TOTAL": str(svalbard_total),
         "PUBLIC_LIST_TABLE": public_list_markdown(public_rows),
-        "NEAREST_15_TABLE": nearest_markdown(norway_rows, 15),
+        "SOUTHERN_15_TABLE": southern_markdown(norway_rows, 15),
         "NORTHERN_15_TABLE": northern_markdown(norway_rows, 15),
     }
-    report = render_report(context)
+    report = render_template(context, REPORT_TEMPLATE)
     if report:
         atomic_write_text(REPORT_FILE, report)
+    readme = render_template(context, README_TEMPLATE)
+    if readme:
+        atomic_write_text(README_FILE, readme)
 
     print("================= GEODNET NORDIC CLASSIFICATION =================")
     print(f"snapshot source  : {snap_source}")
@@ -748,10 +763,13 @@ def main() -> int:
     print("----------------- HARDWARE CLASS -----------------")
     for label in ("GEODNET_MINER", "PUBLIC_IGS_EUREF"):
         print(f"   {label:<18}: {class_counts.get(label, 0)}")
+    print(f"refresh mode     : {refresh}")
     print(f"csv written      : {os.path.relpath(CSV_FILE)}")
     print(f"norway csv       : {os.path.relpath(NORWAY_CSV_FILE)}")
     if report:
         print(f"report written   : {os.path.relpath(REPORT_FILE)}")
+    if readme:
+        print(f"readme written   : {os.path.relpath(README_FILE)}")
     return 0
 
 

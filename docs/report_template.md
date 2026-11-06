@@ -215,11 +215,11 @@ Every station whose name is not a masked miner UID (`****…`) is surfaced as an
 
 {{PUBLIC_LIST_TABLE}}
 
-### 4.2 Fifteen Norwegian stations nearest to the University of Oslo (UiO Blindern, 59.9400 N 10.7200 E)
+### 4.2 Fifteen southern Norwegian stations nearest to the OSLS IGS/EUREF reference station (Oslo, 59.7366 N 10.3683 E)
 
-Distances are geodesic (Haversine, mean Earth radius 6371.0088 km).
+Distances are geodesic (Haversine, mean Earth radius 6371.0088 km); the table is sorted by `dist_to_osls_km`.
 
-{{NEAREST_15_TABLE}}
+{{SOUTHERN_15_TABLE}}
 
 ### 4.3 Fifteen northernmost Norwegian stations (Auroral Oval / Svalbard)
 
@@ -232,19 +232,19 @@ Sorted by descending latitude; `Dist TROM` is the geodesic distance to the IGS/E
 ## 5. Methodology, reproducibility and limitations
 
 **Pipeline (`src/nordic_station_classifier.py`).**
-1. **Cache-first telemetry.** The script checks `data/global_stations_snapshot.json`; if non-empty it reads from disk and performs **no** network request. Only when no local snapshot exists does it issue a single `urllib` GET to `https://rtk.geodnet.com/api/v2/coverage_stations` with a 20 s timeout and an atomic write.
+1. **Cache-first telemetry.** By default the script reads `data/global_stations_snapshot.json` from disk and performs **no** network request. A single `urllib` GET to `https://rtk.geodnet.com/api/v2/coverage_stations` (20 s timeout, atomic write) is issued only on a cold start (no local snapshot) or when the operator explicitly passes `--refresh`.
 2. **Cache-first boundaries.** `data/nordic_boundaries_10m.geojson` is the light working set. If absent, the script downloads Natural Earth 1:10m Admin-0 once (raw cache `data/ne_10m_admin_0_countries.geojson`, fallback `datasets/geo-countries`) and extracts the ten target sovereign states.
 3. **Topology.** Country identity is resolved through the property chain `ADM0_A3 → ISO_A3_EH → SOV_A3 → ISO3166-1-Alpha-3 → ISO_A3 → ADMIN/NAME` (this bypasses the known Natural Earth `ISO_A3 = "-99"` defect for Norway). Containment uses ray-casting parity with AABB pre-filtering and hole (enclave) subtraction. Coastal stations unmatched by any polygon are assigned to the nearest national coastline within 20 km using a local-tangent-plane metric (`dx = Δlng·111.320·cos φ`, `dy = Δlat·110.574`).
-4. **Geodesy and stability.** Haversine distances to UiO Blindern, OSLS and TROM; all trigonometric arguments are clamped, every division is guarded by `abs(denominator) > 1e-12`, and every output metric passes a `math.isfinite` check before deterministic rounding.
-5. **Outputs.** `data/global_stations_snapshot.json`, `data/nordic_boundaries_10m.geojson`, `data/nordic_geodnet_stations.csv`, `data/norway_only_stations.csv` and this report.
+4. **Geodesy and stability.** Haversine distances to the three IGS/EUREF reference stations OSLS, TROM and NYA2; all trigonometric arguments are clamped, every division is guarded by `abs(denominator) > 1e-12`, and every output metric passes a `math.isfinite` check before deterministic rounding.
+5. **Outputs.** `data/global_stations_snapshot.json`, `data/nordic_boundaries_10m.geojson`, `data/nordic_geodnet_stations.csv`, `data/norway_only_stations.csv`, this report and the auto-generated `README.md`.
 
-**Reference points.**
+**Reference points (IGS/EUREF).**
 
 | Point | Latitude | Longitude | Role |
 | :--- | ---: | ---: | :--- |
-| UiO Blindern | 59.9400 | 10.7200 | University of Oslo campus |
 | OSLS | 59.7366 | 10.3683 | IGS/EUREF reference station, Oslo |
 | TROM | 69.6627 | 18.9396 | IGS/EUREF reference station, Tromsø |
+| NYA2 | 78.9296 | 11.8653 | IGS/EUREF reference station, Ny-Ålesund (Svalbard) |
 
 **Limitations.**
 - Classification rests on Natural Earth 1:10m Admin-0 geometry; sub-kilometre coastal offsets can push a fjord / skjaergaard station into the 20 km coastal buffer — which is precisely why that fallback exists.

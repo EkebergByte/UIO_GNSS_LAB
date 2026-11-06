@@ -2,7 +2,7 @@
 
 **Programme:** UIO_GNSS_LAB — High-Latitude GNSS Infrastructure & Ionospheric Quality Control
 **Affiliation:** University of Oslo — Mathematics: Data, Modelling and Computations
-**Report generated:** 2026-11-06 14:50:12 UTC
+**Report generated:** 2026-11-06 15:10:03 UTC
 **Telemetry snapshot source:** local-cache
 **Reference sources:** GEODNET public API documentation; Natural Earth 1:10m Admin-0 boundaries; IGS/EUREF station registry
 
@@ -13,7 +13,7 @@
 1. **Scope.** This report establishes an independent, reproducible baseline of GEODNET reference-station coverage and quality-control behaviour across the high-latitude Nordic domain, combining the public coverage API with authoritative cartographic boundaries (Natural Earth 1:10m) and the published quality-control contracts of the GEODNET network.
 2. **QC contract.** GEODNET's data-quality gate is fully documented: a station's hourly data is only usable when **epoch completeness ≥ 90 %** and the **multipath metric MP12 ≤ 0.7 m**. The PPK download endpoint returns business **error code 310 = "Station QC quality is poor. Download failed."** when that gate is not met.
 3. **Processing toolchain.** RTCM 3.x to RINEX conversion follows the documented **RTKLIB** (`convbin`) route distributed as `geodnet/rtklib_lte`, which enables standard post-processed kinematic (PPK) workflows on the retrieved observations.
-4. **Live network.** On 2026-11-06 14:50:12 UTC the public coverage endpoint reported **19566** global stations. Precise point-in-multipolygon classification (Natural Earth 1:10m Admin-0, with a 20 km coastal-buffer fallback) resolved **302** stations across the five Nordic sovereign states, of which **92** lie in the Kingdom of Norway (including **2** in Svalbard above 74° N).
+4. **Live network.** On 2026-11-06 15:10:03 UTC the public coverage endpoint reported **19566** global stations. Precise point-in-multipolygon classification (Natural Earth 1:10m Admin-0, with a 20 km coastal-buffer fallback) resolved **302** stations across the five Nordic sovereign states, of which **92** lie in the Kingdom of Norway (including **2** in Svalbard above 74° N).
 
 ---
 
@@ -176,7 +176,7 @@ Interpretation: `-r rtcm3` forces the input format, `-tr` supplies the start tim
 
 ## 3. Live GEODNET network statistics
 
-**Snapshot:** 2026-11-06 14:50:12 UTC · **source:** local-cache · **boundaries:** local-cache
+**Snapshot:** 2026-11-06 15:10:03 UTC · **source:** local-cache · **boundaries:** local-cache
 
 ### 3.1 Global totals by status
 
@@ -244,27 +244,27 @@ Every station whose name is not a masked miner UID (`****…`) is surfaced as an
 | SWE | 843 | MAR7 | ACTIVE | SE-Sweden | 60.5950 | 17.2580 |
 | SWE | 3040 | ONS1 | ACTIVE | SE-Sweden | 57.3950 | 11.9250 |
 
-### 4.2 Fifteen Norwegian stations nearest to the University of Oslo (UiO Blindern, 59.9400 N 10.7200 E)
+### 4.2 Fifteen southern Norwegian stations nearest to the OSLS IGS/EUREF reference station (Oslo, 59.7366 N 10.3683 E)
 
-Distances are geodesic (Haversine, mean Earth radius 6371.0088 km).
+Distances are geodesic (Haversine, mean Earth radius 6371.0088 km); the table is sorted by `dist_to_osls_km`.
 
-| Rank | Station ID | Name | Status | Class | Zone | Lat | Lng | Dist UiO km |
+| Rank | Station ID | Name | Status | Class | Zone | Lat | Lng | Dist OSLS km |
 | ---: | ---: | :--- | :--- | :--- | :--- | ---: | ---: | ---: |
-| 1 | 973 | ****380AD | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.9490 | 10.6870 | 2.09 |
-| 2 | 3748 | ****F3E3D | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.9400 | 10.5850 | 7.52 |
-| 3 | 1922 | ****AE3D5 | ONLINE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.8290 | 10.4440 | 19.73 |
-| 4 | 1260 | ****6E8CC | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.9490 | 11.1170 | 22.13 |
-| 5 | 475 | ****FE2A1 | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 60.0650 | 11.1280 | 26.60 |
-| 6 | 3079 | ****E5D35 | OFFLINE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 60.0750 | 11.1480 | 28.13 |
-| 7 | 1439 | ****CBB75 | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.8790 | 11.2490 | 30.26 |
-| 8 | 1282 | ****22BBC | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 60.1740 | 11.0510 | 31.85 |
-| 9 | 2579 | ****FECE9 | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 60.1390 | 11.2180 | 35.42 |
-| 10 | 1679 | ****018D1 | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 60.0270 | 11.3620 | 37.00 |
-| 11 | 1394 | ****6E578 | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 60.2800 | 10.5960 | 38.43 |
-| 12 | 3938 | ****FDA9D | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 60.2800 | 10.5960 | 38.43 |
-| 13 | 71 | ****33B71 | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.9120 | 9.9500 | 43.02 |
-| 14 | 3202 | ****3A786 | ONLINE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.7510 | 10.0460 | 43.12 |
-| 15 | 79 | ****895F9 | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.7520 | 10.0310 | 43.80 |
+| 1 | 1922 | ****AE3D5 | ONLINE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.8290 | 10.4440 | 11.11 |
+| 2 | 3202 | ****3A786 | ONLINE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.7510 | 10.0460 | 18.13 |
+| 3 | 79 | ****895F9 | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.7520 | 10.0310 | 18.98 |
+| 4 | 3748 | ****F3E3D | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.9400 | 10.5850 | 25.65 |
+| 5 | 492 | ****B7DF4 | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.4950 | 10.2510 | 27.66 |
+| 6 | 70 | ****0C6D9 | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.7690 | 9.8510 | 29.20 |
+| 7 | 973 | ****380AD | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.9490 | 10.6870 | 29.58 |
+| 8 | 71 | ****33B71 | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.9120 | 9.9500 | 30.45 |
+| 9 | 69 | ****9ACD9 | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.8920 | 9.9150 | 30.67 |
+| 10 | 3010 | ****7369D | ONLINE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.3970 | 10.4660 | 38.16 |
+| 11 | 3567 | ****30824 | ONLINE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.5550 | 11.0750 | 44.55 |
+| 12 | 3634 | ****29E0D | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.5550 | 11.0750 | 44.55 |
+| 13 | 1260 | ****6E8CC | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.9490 | 11.1170 | 48.03 |
+| 14 | 109 | ****CE955 | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.6410 | 11.2350 | 49.79 |
+| 15 | 1439 | ****CBB75 | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.8790 | 11.2490 | 51.73 |
 
 ### 4.3 Fifteen northernmost Norwegian stations (Auroral Oval / Svalbard)
 
@@ -293,19 +293,19 @@ Sorted by descending latitude; `Dist TROM` is the geodesic distance to the IGS/E
 ## 5. Methodology, reproducibility and limitations
 
 **Pipeline (`src/nordic_station_classifier.py`).**
-1. **Cache-first telemetry.** The script checks `data/global_stations_snapshot.json`; if non-empty it reads from disk and performs **no** network request. Only when no local snapshot exists does it issue a single `urllib` GET to `https://rtk.geodnet.com/api/v2/coverage_stations` with a 20 s timeout and an atomic write.
+1. **Cache-first telemetry.** By default the script reads `data/global_stations_snapshot.json` from disk and performs **no** network request. A single `urllib` GET to `https://rtk.geodnet.com/api/v2/coverage_stations` (20 s timeout, atomic write) is issued only on a cold start (no local snapshot) or when the operator explicitly passes `--refresh`.
 2. **Cache-first boundaries.** `data/nordic_boundaries_10m.geojson` is the light working set. If absent, the script downloads Natural Earth 1:10m Admin-0 once (raw cache `data/ne_10m_admin_0_countries.geojson`, fallback `datasets/geo-countries`) and extracts the ten target sovereign states.
 3. **Topology.** Country identity is resolved through the property chain `ADM0_A3 → ISO_A3_EH → SOV_A3 → ISO3166-1-Alpha-3 → ISO_A3 → ADMIN/NAME` (this bypasses the known Natural Earth `ISO_A3 = "-99"` defect for Norway). Containment uses ray-casting parity with AABB pre-filtering and hole (enclave) subtraction. Coastal stations unmatched by any polygon are assigned to the nearest national coastline within 20 km using a local-tangent-plane metric (`dx = Δlng·111.320·cos φ`, `dy = Δlat·110.574`).
-4. **Geodesy and stability.** Haversine distances to UiO Blindern, OSLS and TROM; all trigonometric arguments are clamped, every division is guarded by `abs(denominator) > 1e-12`, and every output metric passes a `math.isfinite` check before deterministic rounding.
-5. **Outputs.** `data/global_stations_snapshot.json`, `data/nordic_boundaries_10m.geojson`, `data/nordic_geodnet_stations.csv`, `data/norway_only_stations.csv` and this report.
+4. **Geodesy and stability.** Haversine distances to the three IGS/EUREF reference stations OSLS, TROM and NYA2; all trigonometric arguments are clamped, every division is guarded by `abs(denominator) > 1e-12`, and every output metric passes a `math.isfinite` check before deterministic rounding.
+5. **Outputs.** `data/global_stations_snapshot.json`, `data/nordic_boundaries_10m.geojson`, `data/nordic_geodnet_stations.csv`, `data/norway_only_stations.csv`, this report and the auto-generated `README.md`.
 
-**Reference points.**
+**Reference points (IGS/EUREF).**
 
 | Point | Latitude | Longitude | Role |
 | :--- | ---: | ---: | :--- |
-| UiO Blindern | 59.9400 | 10.7200 | University of Oslo campus |
 | OSLS | 59.7366 | 10.3683 | IGS/EUREF reference station, Oslo |
 | TROM | 69.6627 | 18.9396 | IGS/EUREF reference station, Tromsø |
+| NYA2 | 78.9296 | 11.8653 | IGS/EUREF reference station, Ny-Ålesund (Svalbard) |
 
 **Limitations.**
 - Classification rests on Natural Earth 1:10m Admin-0 geometry; sub-kilometre coastal offsets can push a fjord / skjaergaard station into the 20 km coastal buffer — which is precisely why that fallback exists.

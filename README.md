@@ -1,32 +1,22 @@
 # High-Latitude GNSS Infrastructure & Quality Control Telemetry (GEODNET / IGS)
 
-An independent research project in **GNSS data science and signal physics**, carried out within
-**University of Oslo — Mathematics: Data, Modelling and Computations**.
+An **initiated, modular research project** in GNSS data science and signal physics, carried out
+within **University of Oslo — Mathematics: Data, Modelling and Computations**.
 
-The project characterises the behaviour of dense, crowd-sourced GNSS reference infrastructure
-(the GEODNET network) at high northern latitudes, and relates its raw, signal-level quality
-metrics to the ionospheric state above the auroral oval and the Svalbard archipelago. It is a
-data-science study built on open geodetic standards: WGS84/ITRF2020 coordinates, RTCM 3.x
-observations, NTRIP transport, and Natural Earth 1:10m national boundaries.
-
----
-
-## 1. Introduction
-
-Above roughly 59° N and reaching to Ny-Ålesund (78.9° N) on Svalbard, GNSS signals traverse the
-**ionospheric trough and the auroral oval**, where electron-density gradients, plasma
-irregularities and scintillation are frequent and intense. In this domain a GNSS receiver
-simultaneously experiences (i) large-scale, regionally coherent ionospheric disturbances driven
-by space weather, and (ii) local, station-specific errors introduced by the physical installation
-of the antenna (multipath, obstruction, poor sky view). The scientific interest of this project
-is the **statistical separation** of these two error classes using only the observables that a
-reference network exposes.
+This is the starting phase of an independent study of dense, crowd-sourced GNSS reference
+infrastructure (the GEODNET network) at high northern latitudes. The project is being developed
+**modularly in three phases** (see the roadmap in Section 2). At present the repository publishes
+the completed **Phase 1** network baseline and the verified spatial datasets derived from it;
+**Phase 2** (the dual-frequency ionospheric signal engine) is in progress, and **Phase 3** (error
+separation) is planned. This repository therefore documents the current, verified state of the
+network and the project roadmap honestly — the ionospheric STEC/ROTI processing code is **not yet
+part of this repository**.
 
 ---
 
-## 2. Research Objectives
+## 1. Research Objectives
 
-### 2.1 Quantifying ionospheric disturbance — STEC and ROTI
+### 1.1 Quantifying ionospheric disturbance — STEC and ROTI
 
 Derive the **Slant Total Electron Content (STEC)** from the dual-frequency, **geometry-free
 carrier-phase combination** (L1/L2/E5a), which isolates the dispersive ionospheric delay from the
@@ -36,7 +26,7 @@ standard deviation of ROT over a sliding window (1 TECU = 10¹⁶ electrons·m�
 implementation accumulates ROTI online using **Welford's algorithm** and geolocates every sample at
 its **ionospheric pierce point (IPP)** on a thin shell at ~350 km altitude.
 
-### 2.2 Separating space weather from local multipath
+### 1.2 Separating space weather from local multipath
 
 Distinguish two physically distinct failure modes:
 
@@ -48,44 +38,79 @@ Distinguish two physically distinct failure modes:
   and reduced data availability, which trigger the GEODNET QC rejection path (business
   **status code 310**, epoch completeness < 90 %).
 
-### 2.3 Benchmarking against IGS/EUREF reference stations
+### 1.3 Benchmarking against IGS/EUREF reference stations
 
-Anchor the network statistics to authoritative, high-grade reference stations — **OSLS** (Oslo,
-59.7366° N 10.3683° E), **TROM** (Tromsø, 69.6627° N 18.9396° E) and **NYA2** (Ny-Ålesund,
-Svalbard) — and to the University of Oslo Blindern campus (59.9400° N 10.7200° E), using
-geodesic (Haversine) baselines as the common spatial reference.
+Anchor the network statistics to three authoritative **IGS/EUREF** reference stations —
+**OSLS** (Oslo, 59.7366° N 10.3683° E), **TROM** (Tromsø, 69.6627° N 18.9396° E) and **NYA2**
+(Ny-Ålesund, Svalbard, 78.9296° N 11.8653° E) — using geodesic (Haversine) baselines as the
+common spatial reference. Each Nordic station therefore carries three reference distances:
+`dist_to_osls_km`, `dist_to_trom_km` and `dist_to_nya2_km`.
 
 ---
 
-## 3. Repository Dataset (as of 2026-11-06)
+## 2. Project Roadmap & Current Implementation Status
 
-The classifier resolves station membership by **point-in-multipolygon** testing against the
-Natural Earth 1:10m Admin-0 boundaries, with a **20 km coastal-closure buffer** that re-attributes
-fjord and skjaergaard stations whose rounded coordinates fall just outside the land polygon.
+| Phase | Status | Module | Scope |
+| :--- | :--- | :--- | :--- |
+| **Phase 1 — Spatial Topology & Network Classification** | `COMPLETED` | `src/nordic_station_classifier.py` | Point-in-MultiPolygon classification, Norwegian research zones, hardware split, IGS/EUREF baselines |
+| **Phase 2 — Dual-Frequency RINEX / RTCM Signal Parser & Ionospheric Engine** | `IN PROGRESS` | `src/` (planned) | L1/L2/E5a observation parsing, geometry-free STEC, Welford ROTI at 350 km IPP |
+| **Phase 3 — Spatiotemporal Error Separation: Space Weather vs. Local Multipath** | `PLANNED` | `src/` (planned) | Statistical separation of auroral scintillation from local antenna-installation defects |
 
-**Nordic region — verified stations: 302** (26 attributed via the coastal buffer).
+**Phase 1 — Spatial Topology & Network Classification (`COMPLETED`).** Implemented in
+`src/nordic_station_classifier.py`: Point-in-MultiPolygon classification against the Natural Earth
+1:10m Admin-0 boundary set with a **20 km coastal fjord closure** fallback; partitioning of the
+Kingdom of Norway into research zones (including the auroral oval and Svalbard); hardware
+separation `GEODNET_MINER` vs. `PUBLIC_IGS_EUREF`; and geodesic (Haversine) baselines to the
+IGS/EUREF reference stations `OSLS`, `TROM` and `NYA2`.
 
-| Sovereign state | ISO | Stations |
-| :--- | :--- | ---: |
-| Norway | NOR | 92 |
-| Sweden | SWE | 145 |
-| Finland | FIN | 23 |
-| Denmark | DNK | 34 |
-| Iceland | ISL | 8 |
+**Phase 2 — Dual-Frequency RINEX / RTCM Signal Parser & Ionospheric Engine (`IN PROGRESS`).**
+Extraction of L1/L2/E5a code and carrier-phase observations from **RINEX 3.04** files and
+**NTRIP RTCM 3.2** streams; computation of **Slant TEC (STEC)** from the geometry-free linear
+combination, and of the **ROTI** index (a 5-minute standard deviation of ROT using Welford's online
+algorithm) evaluated at ionospheric pierce points (IPP) at 350 km altitude.
 
-**Kingdom of Norway — research zones (92 stations):**
+**Phase 3 — Spatiotemporal Error Separation: Space Weather vs. Local Multipath (`PLANNED`).**
+A statistical model that distinguishes regional auroral scintillation (simultaneous ROTI spikes and
+cycle slips across many stations) from local antenna-installation defects (multipath `MP12 > 0.7 m`,
+low signal-to-noise ratio `SNR < 32 dB-Hz`, and data rejected with QC `code 310`).
 
-| Zone | Stations | Character |
-| :--- | ---: | :--- |
-| NO-South-Oslo-Ostlandet | 45 | lat < 62° N, lng ≥ 9° E |
-| NO-South-West-Vestlandet | 20 | lat < 62° N, lng < 9° E |
-| NO-North-Auroral | 15 | 65° N ≤ lat < 74° N (auroral oval) |
-| NO-Central-Trondelag | 10 | 62° N ≤ lat < 65° N |
-| NO-Svalbard-Arctic | 2 | lat ≥ 74° N |
+---
 
-**Hardware class (Nordic region):** `GEODNET_MINER` 293 · `PUBLIC_IGS_EUREF` 9.
-The nine public scientific mountpoints are **METG** (FIN), **G025 / HOFN / REYK** (ISL),
-**G022 / NYA2** (NOR) and **KIR8 / MAR7 / ONS1** (SWE).
+## 3. Live Repository Dataset (Snapshot: 2026-11-06 15:10:03 UTC)
+
+Global network at snapshot time: **19566** reference stations. Within the Nordic
+domain the classifier resolves **302** verified stations across five sovereign states,
+of which **92** lie in the Kingdom of Norway. Membership is established by
+**point-in-multipolygon** testing against the Natural Earth 1:10m Admin-0 boundaries, with a
+**20 km coastal-closure buffer** that re-attributes fjord and skjaergaard stations whose rounded
+coordinates fall just outside the land polygon.
+
+### 3.1 Nordic stations by sovereign state
+
+| ISO | Country | Stations | Share |
+| :--- | :--- | ---: | ---: |
+| NOR | Norway | 92 | 30.5% |
+| SWE | Sweden | 145 | 48.0% |
+| FIN | Finland | 23 | 7.6% |
+| DNK | Denmark | 34 | 11.3% |
+| ISL | Iceland | 8 | 2.6% |
+
+### 3.2 Kingdom of Norway — research zones
+
+| Zone | Stations |
+| :--- | ---: |
+| NO-Central-Trondelag | 10 |
+| NO-North-Auroral | 15 |
+| NO-South-Oslo-Ostlandet | 45 |
+| NO-South-West-Vestlandet | 20 |
+| NO-Svalbard-Arctic | 2 |
+
+### 3.3 Hardware class split (Nordic region)
+
+| Station class | Stations |
+| :--- | ---: |
+| `GEODNET_MINER` | 293 |
+| `PUBLIC_IGS_EUREF` | 9 |
 
 ---
 
@@ -93,23 +118,24 @@ The nine public scientific mountpoints are **METG** (FIN), **G025 / HOFN / REYK*
 
 ```
 UIO_GNSS_LAB/
-├── README.md                          This document
+├── README.md                          Auto-generated (from docs/readme_template.md)
 ├── LICENSE                            MIT license
 ├── .gitignore                         Ignore rules (raw caches, tooling, IDE)
 ├── src/
-│   └── nordic_station_classifier.py   Classifier + report generator
+│   └── nordic_station_classifier.py   Phase 1 classifier + report/README generator
 ├── data/
 │   ├── nordic_boundaries_10m.geojson  Natural Earth 1:10m polygons (10 states)
-│   ├── nordic_geodnet_stations.csv    All 302 Nordic stations
-│   └── norway_only_stations.csv       The 92 Norwegian stations (sorted by distance to UiO)
+│   ├── nordic_geodnet_stations.csv    All Nordic stations
+│   └── norway_only_stations.csv       Norwegian stations (sorted by dist_to_osls_km)
 └── docs/
-    ├── report_template.md             Report source template
-    └── NORDIC_NETWORK_REPORT.md       Generated analytical report
+    ├── report_template.md             Analytical report source template
+    ├── NORDIC_NETWORK_REPORT.md       Generated analytical report
+    └── readme_template.md             README source template
 ```
 
 The classifier is dependency-free (Python standard library only). Two large inputs —
-`data/ne_10m_admin_0_countries.geojson` and `data/global_stations_snapshot.json` — are
-**not** tracked and are regenerated on first use (see below).
+`data/ne_10m_admin_0_countries.geojson` and `data/global_stations_snapshot.json` — are **not**
+tracked and are regenerated on first use.
 
 ---
 
@@ -117,18 +143,24 @@ The classifier is dependency-free (Python standard library only). Two large inpu
 
 Requirements: **Python 3.11+** (no third-party packages).
 
+**Default — instant regeneration from local cache (zero HTTP requests):**
+
 ```bash
 python src/nordic_station_classifier.py
 ```
 
-The pipeline is **cache-first**. It reads the telemetry snapshot and the boundary working set
-from disk when present and performs **no network request**; only on a cold start (missing
-files) does it issue a single `urllib` GET to the public coverage endpoint and to Natural Earth,
-each written atomically. Running the script regenerates:
+Reads the existing `data/global_stations_snapshot.json` and `data/nordic_boundaries_10m.geojson`
+from disk and rewrites the CSV datasets, `docs/NORDIC_NETWORK_REPORT.md` and `README.md`.
 
-- `data/nordic_geodnet_stations.csv`
-- `data/norway_only_stations.csv`
-- `docs/NORDIC_NETWORK_REPORT.md`
+**Live network refresh (explicit opt-in):**
+
+```bash
+python src/nordic_station_classifier.py --refresh
+```
+
+Fetches a single fresh snapshot from `https://rtk.geodnet.com/api/v2/coverage_stations`, overwrites
+`data/global_stations_snapshot.json` atomically, and recomputes every table — automatically
+updating the CSVs, the report and this `README.md`.
 
 ---
 
@@ -141,10 +173,10 @@ each written atomically. Running the script regenerates:
 - **Coastal closure.** Unmatched coastal points are attributed to the nearest national coastline
   within 20 km using a local-tangent-plane metric
   (`dx = Δlng·111.320·cos φ`, `dy = Δlat·110.574`).
-- **Geodesy and stability.** Great-circle distances use the Haversine formula (mean Earth radius
-  6371.0088 km). Every trigonometric argument is domain-clamped, every division is guarded by
-  `abs(denominator) > 1e-12`, and every published metric passes a finite-value check before
-  deterministic rounding.
+- **Geodesy and stability.** Great-circle distances to the IGS/EUREF stations `OSLS`, `TROM` and
+  `NYA2` use the Haversine formula (mean Earth radius 6371.0088 km). Every trigonometric argument
+  is domain-clamped, every division is guarded by `abs(denominator) > 1e-12`, and every published
+  metric passes a finite-value check before deterministic rounding.
 
 ---
 
