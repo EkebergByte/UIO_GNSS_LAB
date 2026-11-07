@@ -72,7 +72,7 @@ Two working programs and three research datasets.
 
 ---
 
-## Live Network Dataset (Snapshot: {{GENERATED_AT}})
+## Live Network Dataset (Snapshot: {{SNAPSHOT_FETCHED_AT}})
 
 Global stations observed: **{{TOTAL_STATIONS}}** — Nordic stations: **{{NORDIC_TOTAL}}** — Norway:
 **{{NORWAY_TOTAL}}**.
@@ -141,8 +141,10 @@ UIO_GNSS_LAB/
 ├── README.md
 ├── LICENSE
 ├── .gitignore
+├── check_purity.py
 ├── src/
 │   ├── nordic_station_classifier.py   classification + dataset/report/README generator
+│   ├── gnss_common.py                 shared constants, geometry helpers and observatories
 │   ├── telemetry_ui.py                local dashboard server (/api/telemetry)
 │   └── dashboard.html                 three-tab interactive dashboard
 ├── data/

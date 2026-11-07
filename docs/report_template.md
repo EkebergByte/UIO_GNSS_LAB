@@ -13,7 +13,7 @@
 1. **Scope.** This report establishes an independent, reproducible baseline of GEODNET reference-station coverage and quality-control behaviour across the high-latitude Nordic domain, combining the public coverage API with authoritative cartographic boundaries (Natural Earth 1:10m) and the published quality-control contracts of the GEODNET network.
 2. **QC contract.** GEODNET's data-quality gate is fully documented: a station's hourly data is only usable when **epoch completeness ≥ 90 %** and the **multipath metric MP12 ≤ 0.7 m**. The PPK download endpoint returns business **error code 310 = "Station QC quality is poor. Download failed."** when that gate is not met.
 3. **Processing toolchain.** RTCM 3.x to RINEX conversion follows the documented **RTKLIB** (`convbin`) route distributed as `geodnet/rtklib_lte`, which enables standard post-processed kinematic (PPK) workflows on the retrieved observations.
-4. **Live network.** On {{GENERATED_AT}} the public coverage endpoint reported **{{TOTAL_STATIONS}}** global stations. Precise point-in-multipolygon classification (Natural Earth 1:10m Admin-0, with a 20 km coastal-buffer fallback) resolved **{{NORDIC_TOTAL}}** stations across the five Nordic sovereign states, of which **{{NORWAY_TOTAL}}** lie in the Kingdom of Norway (including **{{SVALBARD_TOTAL}}** in Svalbard above 74° N).
+4. **Live network.** On {{SNAPSHOT_FETCHED_AT}} the public coverage endpoint reported **{{TOTAL_STATIONS}}** global stations. Precise point-in-multipolygon classification (Natural Earth 1:10m Admin-0, with a 20 km coastal-buffer fallback) resolved **{{NORDIC_TOTAL}}** stations across the five Nordic sovereign states, of which **{{NORWAY_TOTAL}}** lie in the Kingdom of Norway (including **{{SVALBARD_TOTAL}}** in Svalbard above 74° N).
 
 ---
 
@@ -176,7 +176,7 @@ Interpretation: `-r rtcm3` forces the input format, `-tr` supplies the start tim
 
 ## 3. Live GEODNET network statistics
 
-**Snapshot:** {{GENERATED_AT}} · **source:** {{SNAPSHOT_SOURCE}} · **boundaries:** {{BOUNDARY_SOURCE}}
+**Snapshot:** {{SNAPSHOT_FETCHED_AT}} · **source:** {{SNAPSHOT_SOURCE}} · **boundaries:** {{BOUNDARY_SOURCE}}
 
 ### 3.1 Global totals by status
 

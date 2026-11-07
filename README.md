@@ -72,7 +72,7 @@ Two working programs and three research datasets.
 
 ---
 
-## Live Network Dataset (Snapshot: 2026-11-06 16:11:21 UTC)
+## Live Network Dataset (Snapshot: 2026-11-06 14:09:31 UTC)
 
 Global stations observed: **19566** — Nordic stations: **302** — Norway:
 **92**.
@@ -153,8 +153,10 @@ UIO_GNSS_LAB/
 ├── README.md
 ├── LICENSE
 ├── .gitignore
+├── check_purity.py
 ├── src/
 │   ├── nordic_station_classifier.py   classification + dataset/report/README generator
+│   ├── gnss_common.py                 shared constants, geometry helpers and observatories
 │   ├── telemetry_ui.py                local dashboard server (/api/telemetry)
 │   └── dashboard.html                 three-tab interactive dashboard
 ├── data/
