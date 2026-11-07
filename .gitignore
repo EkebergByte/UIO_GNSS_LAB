@@ -1,6 +1,5 @@
 repos/
 .clinerules
-check_purity.py
 data/ne_10m_admin_0_countries.geojson
 data/global_stations_snapshot.json
 *.tmp

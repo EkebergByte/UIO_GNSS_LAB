@@ -7,9 +7,10 @@ import os
 import socket
 import threading
 import webbrowser
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+from gnss_common import OBSERVATORIES, clamp
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -27,7 +28,6 @@ DASHBOARD_FILE = os.path.join(SRC_DIR, "dashboard.html")
 
 PORT_RANGE = range(8085, 8096)
 MAP_ISOS = ("NOR", "SWE", "FIN", "DNK", "ISL")
-STATUS_ORDER = ("ACTIVE", "ONLINE", "OFFLINE")
 HASH = chr(35)
 COLORS = {
     "ACTIVE": HASH + "66C2A5",
@@ -35,32 +35,24 @@ COLORS = {
     "OFFLINE": HASH + "D95F5F",
 }
 FLAP_BIN_LABELS = ("0", "1-5", "6-20", "21-50", ">50")
-FLAP_BIN_LIMITS = (0, 5, 20, 50)
 BAND_WIDTH = 3.0
 BAND_MIN = 54.0
 BAND_MAX = 81.0
 NORTH_LAT = 65.0
 MIN_MAP_LAT = 53.0
 
-
-@dataclass(frozen=True, slots=True)
-class Observatory:
-    name: str
-    lat: float
-    lng: float
-
-
-OBSERVATORIES = (
-    Observatory("OSLS", 59.7366, 10.3683),
-    Observatory("TROM", 69.6627, 18.9396),
-    Observatory("NYA2", 78.9296, 11.8653),
+PAYLOAD_SOURCES = (
+    SNAPSHOT_FILE,
+    NORDIC_CSV,
+    NORWAY_CSV,
+    BOUNDARY_FILE,
+    STATS_FILE,
+    DAILY_FILE,
+    EVENTS_FILE,
 )
 
-
-def clamp(value: float, low: float, high: float) -> float:
-    if not math.isfinite(value):
-        return low
-    return max(low, min(high, value))
+CACHE_LOCK = threading.Lock()
+BODY_CACHE = {"signature": None, "body": None}
 
 
 def safe_float(value) -> float:
@@ -117,6 +109,19 @@ def read_stations(path: str) -> list:
                 }
             )
     return stations
+
+
+def count_stations(path: str) -> int:
+    if not (os.path.isfile(path) and os.path.getsize(path) > 0):
+        return 0
+    total = 0
+    with open(path, "r", encoding="utf-8", newline="") as handle:
+        for row in csv.DictReader(handle):
+            lat = safe_float(row.get("lat"))
+            lng = safe_float(row.get("lng"))
+            if math.isfinite(lat) and math.isfinite(lng):
+                total += 1
+    return total
 
 
 def load_boundaries() -> dict:
@@ -319,7 +324,7 @@ def build_payload() -> dict:
             if status in status_counts:
                 status_counts[status] += 1
     nordic = read_stations(NORDIC_CSV)
-    norway = read_stations(NORWAY_CSV)
+    norway_total = count_stations(NORWAY_CSV)
     stats = load_json(STATS_FILE)
     daily = load_json(DAILY_FILE)
     events = load_json(EVENTS_FILE)
@@ -350,7 +355,7 @@ def build_payload() -> dict:
             "active": status_counts["ACTIVE"],
             "online": status_counts["ONLINE"],
             "offline": status_counts["OFFLINE"],
-            "norway": len(norway),
+            "norway": norway_total,
             "nordic": len(nordic),
             "auroral": sum(1 for station in nordic if station["lat"] >= NORTH_LAT),
         },
@@ -365,6 +370,29 @@ def build_payload() -> dict:
         "boundaries": load_boundaries(),
         "stations": enriched,
     }
+
+
+def source_signature() -> tuple:
+    entries = []
+    for path in PAYLOAD_SOURCES:
+        try:
+            stat = os.stat(path)
+            entries.append((path, stat.st_mtime_ns, stat.st_size))
+        except OSError:
+            entries.append((path, -1, -1))
+    return tuple(entries)
+
+
+def build_body_cached() -> bytes:
+    signature = source_signature()
+    with CACHE_LOCK:
+        if BODY_CACHE["signature"] == signature and BODY_CACHE["body"] is not None:
+            return BODY_CACHE["body"]
+    body = json.dumps(build_payload(), allow_nan=False).encode("utf-8")
+    with CACHE_LOCK:
+        BODY_CACHE["signature"] = signature
+        BODY_CACHE["body"] = body
+    return body
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -389,7 +417,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _serve_api(self) -> None:
         try:
-            body = json.dumps(build_payload(), allow_nan=False).encode("utf-8")
+            body = build_body_cached()
         except Exception as exc:
             message = json.dumps({"error": str(exc)}).encode("utf-8")
             self._send(500, "application/json; charset=utf-8", message)
