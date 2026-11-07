@@ -1,5 +1,9 @@
 # High-Latitude GNSS Infrastructure & Quality Control Telemetry (GEODNET / IGS)
 
+[![CI](https://github.com/EkebergByte/UIO_GNSS_LAB/actions/workflows/ci.yml/badge.svg)](https://github.com/EkebergByte/UIO_GNSS_LAB/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 An independent GNSS data-science project at the **University of Oslo** (Mathematics: Data,
 Modelling and Computations). It classifies GEODNET reference stations across the Nordic region and
 visualises their quality-control behaviour at high latitudes. Everything runs on the **Python

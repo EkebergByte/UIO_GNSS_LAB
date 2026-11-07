@@ -2,7 +2,7 @@
 
 **Programme:** UIO_GNSS_LAB — High-Latitude GNSS Infrastructure & Ionospheric Quality Control
 **Affiliation:** University of Oslo — Mathematics: Data, Modelling and Computations
-**Report generated:** 2026-11-07 21:37:58 UTC
+**Report generated:** 2026-11-07 21:40:57 UTC
 **Telemetry snapshot source:** local-cache
 **Reference sources:** GEODNET public API documentation; Natural Earth 1:10m Admin-0 boundaries; IGS/EUREF station registry
 
