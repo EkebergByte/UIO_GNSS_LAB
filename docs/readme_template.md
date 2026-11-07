@@ -134,19 +134,44 @@ starts the local dashboard and opens it in your browser on a free port between 8
 
 ---
 
+## Testing
+
+The test suite uses the Python standard library (`unittest`) and requires no third-party packages:
+
+```bash
+python -m unittest discover -s tests -t tests -v
+python check_purity.py
+```
+
+The three quality gates (purity, byte-compile and unit tests) run automatically on every push and
+pull request via GitHub Actions (`.github/workflows/ci.yml`).
+
+---
+
 ## Repository Structure
 
 ```
 UIO_GNSS_LAB/
 ├── README.md
 ├── LICENSE
-├── .gitignore
+├── DATA_SOURCES.md
+├── pyproject.toml
 ├── check_purity.py
+├── .gitignore
+├── .gitattributes
+├── .editorconfig
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 ├── src/
 │   ├── nordic_station_classifier.py   classification + dataset/report/README generator
 │   ├── gnss_common.py                 shared constants, geometry helpers and observatories
 │   ├── telemetry_ui.py                local dashboard server (/api/telemetry)
 │   └── dashboard.html                 three-tab interactive dashboard
+├── tests/
+│   ├── test_gnss_common.py
+│   ├── test_classifier.py
+│   └── test_telemetry_ui.py
 ├── data/
 │   ├── nordic_boundaries_10m.geojson
 │   ├── nordic_geodnet_stations.csv

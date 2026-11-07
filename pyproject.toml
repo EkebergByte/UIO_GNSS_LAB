@@ -1,0 +1,32 @@
+[project]
+name = "uio-gnss-lab"
+version = "0.1.0"
+description = "High-latitude GNSS infrastructure and quality-control telemetry for the GEODNET and IGS reference networks"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "EkebergByte", email = "ekeberg0304@gmail.com" }]
+keywords = ["gnss", "geodnet", "igs", "geodesy", "quality-control", "telemetry"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: GIS",
+]
+
+[project.urls]
+Homepage = "https://github.com/EkebergByte/UIO_GNSS_LAB"
+Repository = "https://github.com/EkebergByte/UIO_GNSS_LAB"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 110
+extend-exclude = ["repos"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+exclude = ["repos"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
