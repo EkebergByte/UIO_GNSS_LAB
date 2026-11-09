@@ -40,7 +40,7 @@ Two working programs and three research datasets.
    against the Natural Earth 1:10m national boundaries (point-in-multipolygon, with a 20 km coastal
    closure for fjords), splits Norway into five research zones, separates hardware classes, and
    writes the CSV datasets, the report and this README.
-2. `src/telemetry_ui.py` — a local dashboard server. It serves the interactive three-tab dashboard
+2. `src/telemetry_ui.py` — a local dashboard server. It serves the interactive two-tab dashboard
    and a JSON endpoint `/api/telemetry` built from the local files only.
 
 **Datasets**
@@ -60,7 +60,7 @@ Two working programs and three research datasets.
 - *Cumulative Station Onboarding:* cumulative curve of new stations ({{COHORT_NEW}} new stations over
   the {{ARCHIVE_DAYS}}-day archive window).
 
-*Tab 2 — Nordic & Norway Spatial Map*
+*Tab 2 — Nordic & Norway Geodetic Map*
 - *Interactive 3D-Styled Geodetic Map (Natural Earth 1:10m):* interactive map of Scandinavia,
   Norway and Svalbard with the auroral-oval band (`65°N Auroral Oval`), RTK coverage rings
   (`15 km / 30 km`), Haversine baseline vectors to three official IGS/EUREF observatories (`OSLS`
@@ -68,11 +68,6 @@ Two working programs and three research datasets.
 - *Sovereign States & Norwegian Latitudinal Zones:* the {{NORDIC_TOTAL}} stations across the five Nordic
   countries (`SWE`, `NOR`, `DNK`, `FIN`, `ISL`) and the {{NORWAY_TOTAL}} Norwegian stations split into five
   latitude zones and two hardware classes (`GEODNET_MINER` vs `PUBLIC_IGS_EUREF`).
-
-*Tab 3 — Station Reliability & Data Explorer*
-- *Status Flap Frequency & Latitude Band Availability:* stability analysis and status-transition
-  counts (`flaps`) across latitude bands from `54°N` to `81°N`, plus an interactive table with
-  search and sorting for every station.
 
 ---
 
@@ -171,7 +166,7 @@ UIO_GNSS_LAB/
 │   ├── nordic_station_classifier.py   classification + dataset/report/README generator
 │   ├── gnss_common.py                 shared constants, geometry helpers and observatories
 │   ├── telemetry_ui.py                local dashboard server (/api/telemetry)
-│   └── dashboard.html                 three-tab interactive dashboard
+│   └── dashboard.html                 two-tab interactive dashboard
 ├── tests/
 │   ├── test_gnss_common.py
 │   ├── test_classifier.py

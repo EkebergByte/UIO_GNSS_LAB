@@ -1,6 +1,8 @@
 mod classify_engine;
 mod error;
 mod geo;
+mod payload;
+mod server;
 mod types;
 
 use std::path::PathBuf;
@@ -29,7 +31,10 @@ fn run(args: &[String]) -> error::AppResult<()> {
             "--classify" => classify_engine::run()?,
             "--check-purity" => check_purity()?,
             "--serve" => {
-                return Err(AppError::NotImplemented("--serve (Phase R2)".to_string()));
+                let runtime = tokio::runtime::Builder::new_multi_thread()
+                    .enable_all()
+                    .build()?;
+                runtime.block_on(server::run())?;
             }
             "--process-iono" => {
                 return Err(AppError::NotImplemented(

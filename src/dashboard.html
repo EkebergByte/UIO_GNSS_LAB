@@ -19,15 +19,21 @@ html, body { margin: 0; padding: 0; background: #0D1117; color: #E2E8F0;
   border-bottom: 3px solid transparent; padding: 12px 22px; cursor: pointer; font-size: 16px; font-weight: 700; }
 .tab-btn.active { color: #E2E8F0; border-bottom: 3px solid #66C2A5; }
 main { padding: 16px 20px 28px 20px; }
-.controls { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 14px; align-items: center; }
-.chip { background: #141A23; color: #94A3B8; border: 1px solid #2D3748;
-  border-radius: 6px; padding: 9px 16px; cursor: pointer; font-size: 14px; font-weight: 600; }
-.chip.active { color: #0D1117; background: #66C2A5; border-color: #66C2A5; }
-.chip.filter.active { background: #E5A93B; border-color: #E5A93B; }
-.chip.sub { background: #1B2531; }
-.chip.sub.active { background: #2AB7CA; border-color: #2AB7CA; }
-.sep { width: 2px; height: 28px; background: #2D3748; margin: 0 8px; }
-.label-mini { color: #94A3B8; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; align-items: stretch; }
+.chip { background: #0F1722; color: #94A3B8; border: 1px solid #2D3748;
+  border-radius: 8px; padding: 9px 14px; cursor: pointer; font-size: 13.5px; font-weight: 600;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s; }
+.chip:hover { border-color: #3B526E; color: #CBD5E1; }
+.chip.active { color: #0B1220; background: #66C2A5; border-color: #66C2A5; font-weight: 700; }
+.seg-toolbar { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; align-items: stretch; }
+.seg-group { background: #161F2C; border: 1px solid #2D3748; border-radius: 12px;
+  padding: 9px 12px 11px 12px; display: flex; flex-direction: column; gap: 8px; }
+.seg-title { color: #64748B; font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; }
+.seg-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg-row .chip { padding: 7px 12px; font-size: 13px; }
+.seg-row .chip.active { box-shadow: 0 0 0 1px #66C2A5 inset, 0 0 12px rgba(102,194,165,0.5); }
+.seg-layer .chip.active { background: #2AB7CA; border-color: #2AB7CA; color: #05161B;
+  box-shadow: 0 0 0 1px #2AB7CA inset, 0 0 14px rgba(42,183,202,0.6); }
 .canvas-wrap { background: #141A23; border: 1px solid #2D3748; border-radius: 10px; padding: 8px; width: 100%; }
 canvas { display: block; width: 100%; height: 64vh; min-height: 470px; cursor: crosshair; }
 .caption { color: #94A3B8; font-size: 14px; margin-top: 12px; line-height: 1.55; }
@@ -36,25 +42,13 @@ canvas { display: block; width: 100%; height: 64vh; min-height: 470px; cursor: c
   border-radius: 8px; padding: 11px 14px; font-size: 14px; color: #E2E8F0; z-index: 50;
   max-width: 360px; line-height: 1.55; box-shadow: 0 8px 28px rgba(0,0,0,0.6); }
 #tooltip .tt-name { font-weight: 700; color: #66C2A5; font-size: 15px; }
-.filters { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 12px; }
-select, input[type="text"] { background: #141A23; color: #E2E8F0; border: 1px solid #2D3748;
-  border-radius: 6px; padding: 9px 12px; font-size: 14px; }
-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th { text-align: left; color: #CBD5E1; font-weight: 700; border-bottom: 1px solid #2D3748;
-  padding: 10px 14px; cursor: pointer; position: sticky; top: 0; background: #141A23; font-size: 14px; }
-td { padding: 10px 14px; border-bottom: 1px solid #1C2530; }
-tr:hover td { background: #182029; }
-.badge { display: inline-block; padding: 3px 10px; border-radius: 11px; font-size: 13px; color: #0D1117; font-weight: 700; }
-#tableScroll { max-height: 58vh; overflow: auto; border: 1px solid #2D3748; border-radius: 10px; }
-.table-note { color: #94A3B8; font-size: 14px; margin: 9px 0; }
 </style>
 </head>
 <body>
 <header id="kpi"></header>
 <nav id="tabs">
-  <button class="tab-btn active" data-tab="1">1 &#183; Network Growth &amp; Historical Series</button>
-  <button class="tab-btn" data-tab="2">2 &#183; Nordic &amp; Norway Spatial Map</button>
-  <button class="tab-btn" data-tab="3">3 &#183; Station Reliability &amp; Data Explorer</button>
+  <button class="tab-btn active" data-tab="1">1 &#183; Network Dynamics &amp; History</button>
+  <button class="tab-btn" data-tab="2">2 &#183; Nordic &amp; Norway Geodetic Map</button>
 </nav>
 <main>
   <section id="panel1" class="tab-panel">
@@ -63,20 +57,9 @@ tr:hover td { background: #182029; }
     <div class="caption" id="caption1"></div>
   </section>
   <section id="panel2" class="tab-panel hidden">
-    <div class="controls" id="controls2"></div>
-    <div class="controls" id="mapLayers"></div>
+    <div class="seg-toolbar" id="controls2"></div>
     <div class="canvas-wrap"><canvas id="canvas2"></canvas></div>
     <div class="caption" id="caption2"></div>
-  </section>
-  <section id="panel3" class="tab-panel hidden">
-    <div class="controls" id="controls3"></div>
-    <div class="canvas-wrap" id="wrap3"><canvas id="canvas3"></canvas></div>
-    <div id="tableExplorer" class="hidden">
-      <div class="filters" id="tableFilters"></div>
-      <div class="table-note" id="tableNote"></div>
-      <div id="tableScroll"><table id="stationTable"></table></div>
-    </div>
-    <div class="caption" id="caption3"></div>
   </section>
 </main>
 <div id="tooltip" class="hidden"></div>
@@ -93,8 +76,8 @@ const FONT_AXIS = "700 13px Segoe UI, DejaVu Sans, Arial";
 const FONT_LEGEND = "700 14px Segoe UI, DejaVu Sans, Arial";
 const FONT_LABEL = "700 14px Segoe UI, DejaVu Sans, Arial";
 let DATA = null;
-const state = { tab: 1, chart: { 1: 0, 2: 0, 3: 0 }, region: "all",
-  layers: { rtk: true, igs: true }, sort: { key: "name", dir: 1 } };
+const state = { tab: 1, chart: { 1: 0, 2: 0 }, region: "all",
+  layers: { rings: false, vectors: true } };
 const $ = (id) => document.getElementById(id);
 function setupCanvas(canvas) {
   const rect = canvas.getBoundingClientRect();
@@ -135,18 +118,7 @@ function yAxisGuides(ctx, pad, iw, y0, hh, yMin, yMax, ticks, gridOn) {
     ctx.fillText(Math.round(value).toLocaleString("en-US"), pad.l - 9, y + 4);
   }
 }
-function rightAxisGuides(ctx, x, y0, hh, yMin, yMax, ticks) {
-  const span = (yMax - yMin) || 1;
-  ctx.strokeStyle = C.border; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y0 + hh); ctx.stroke();
-  for (let k = 0; k <= ticks; k++) {
-    const value = yMin + span * k / ticks;
-    const y = y0 + hh * (1 - (value - yMin) / span);
-    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 5, y); ctx.stroke();
-    ctx.fillStyle = C.gold; ctx.font = FONT_AXIS; ctx.textAlign = "left";
-    ctx.fillText(value.toFixed(1), x + 9, y + 4);
-  }
-}
+
 function xTicks(ctx, pad, iw, ih, labels, maxTicks) {
   const n = labels.length; if (n < 2) return;
   const step = Math.max(1, Math.ceil(n / maxTicks));
@@ -259,10 +231,10 @@ const KX = Math.cos(66 * Math.PI / 180);
 const MAP = { scale: 0, offX: 0, offY: 0, fit: false, proj: {}, hits: [],
   hover: null, pinned: null, dragging: false, lx: 0, ly: 0 };
 const FOCUS = [
-  { id: "mainland", label: "Focus: Mainland Norway & Nordic (55-72N)", lng0: 4.0, lng1: 31.5, lat0: 55.0, lat1: 71.8 },
-  { id: "south", label: "Focus: Oslo & South (58-62N)", lng0: 5.0, lng1: 13.0, lat0: 58.0, lat1: 62.0 },
-  { id: "tromso", label: "Focus: Tromso & Auroral Oval (65-72N)", lng0: 12.0, lng1: 31.0, lat0: 65.0, lat1: 72.0 },
-  { id: "svalbard", label: "Focus: Svalbard Arctic (74-80N)", lng0: 8.0, lng1: 33.0, lat0: 74.0, lat1: 80.0 }
+  { id: "mainland", label: "Mainland (55-72N)", lng0: 4.0, lng1: 31.5, lat0: 55.0, lat1: 71.8 },
+  { id: "south", label: "Oslo South", lng0: 5.0, lng1: 13.0, lat0: 58.0, lat1: 62.0 },
+  { id: "tromso", label: "Tromso North", lng0: 12.0, lng1: 31.0, lat0: 65.0, lat1: 72.0 },
+  { id: "svalbard", label: "Svalbard Arctic", lng0: 8.0, lng1: 33.0, lat0: 74.0, lat1: 80.0 }
 ];
 function project(lng, lat) { return [ lng * KX, lat ]; }
 function toScreen(lng, lat) {
@@ -366,6 +338,19 @@ function kmToPixels(lat, km) {
   const a = toScreen(0, lat), b = toScreen(0, lat + km / 110.574);
   return Math.abs(b[1] - a[1]);
 }
+function drawCoverageRings(ctx) {
+  const stations = filteredStations();
+  ctx.save();
+  for (const st of stations) {
+    const p = toScreen(st.lng, st.lat);
+    const r15 = kmToPixels(st.lat, 15), r30 = kmToPixels(st.lat, 30);
+    ctx.globalAlpha = 0.12; ctx.strokeStyle = C.active; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(p[0], p[1], r15, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = 0.08; ctx.strokeStyle = C.online;
+    ctx.beginPath(); ctx.arc(p[0], p[1], r30, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.restore();
+}
 function drawStations(ctx) {
   MAP.hits = [];
   const focus = MAP.pinned || MAP.hover;
@@ -383,7 +368,7 @@ function drawStations(ctx) {
 }
 function drawFocus(ctx, st) {
   const p = toScreen(st.lng, st.lat);
-  if (state.layers.rtk) {
+  if (state.layers.rings) {
     const r15 = kmToPixels(st.lat, 15), r30 = kmToPixels(st.lat, 30);
     ctx.setLineDash([6, 4]); ctx.strokeStyle = C.active; ctx.lineWidth = 1.7;
     ctx.beginPath(); ctx.arc(p[0], p[1], r15, 0, Math.PI * 2); ctx.stroke();
@@ -391,7 +376,7 @@ function drawFocus(ctx, st) {
     ctx.beginPath(); ctx.arc(p[0], p[1], r30, 0, Math.PI * 2); ctx.stroke();
     ctx.setLineDash([]);
   }
-  if (state.layers.igs) {
+  if (state.layers.vectors) {
     const near = nearestObservatory(st);
     const obs = DATA.observatories.find((o) => o.name === near.name);
     if (obs) {
@@ -513,6 +498,7 @@ function renderTab2() {
     drawLand(ctx, w, h);
     drawAurora(ctx, w);
     drawParallels(ctx, w);
+    if (state.layers.rings) drawCoverageRings(ctx);
     drawObservatories(ctx);
     drawStations(ctx);
     const focus = MAP.pinned || MAP.hover;
@@ -532,149 +518,15 @@ function renderTab2() {
     "Kingdom of Norway - 5 Latitudinal Zones", "Oslo-Ostlandet / Vestlandet / North-Auroral / Trondelag / Svalbard");
   $("caption2").textContent = "Norwegian research-zone status structure.";
 }
-function drawFlapHistogram(ctx, w, h) {
-  const f = DATA.flaps;
-  heading(ctx, "Status Flap Frequency Distribution", "stations per transition-frequency bin (global vs nordic)");
-  const pad = { l: 100, r: 28, t: 86 };
-  const iw = w - pad.l - pad.r, ih = h - pad.t - 54;
-  const maxVal = Math.max(1, ...f.global, ...f.nordic);
-  yAxisGuides(ctx, pad, iw, pad.t, ih, 0, maxVal, 4, true);
-  const groups = f.labels.length;
-  const gw = iw / groups;
-  const bw = gw * 0.3;
-  for (let i = 0; i < groups; i++) {
-    const x0 = pad.l + gw * i + gw * 0.5 - bw - 2;
-    const h1 = ih * f.global[i] / maxVal;
-    const h2 = ih * f.nordic[i] / maxVal;
-    ctx.fillStyle = "#5C6B7A"; ctx.fillRect(x0, pad.t + ih - h1, bw, h1);
-    ctx.fillStyle = C.active; ctx.fillRect(x0 + bw + 4, pad.t + ih - h2, bw, h2);
-    ctx.fillStyle = C.axis; ctx.font = FONT_AXIS; ctx.textAlign = "center";
-    ctx.fillText(f.labels[i], pad.l + gw * i + gw / 2, pad.t + ih + 22);
-    ctx.fillStyle = C.text; ctx.font = "700 14px Segoe UI, DejaVu Sans, Arial";
-    ctx.fillText(f.global[i] + " / " + f.nordic[i], pad.l + gw * i + gw / 2, pad.t + ih - Math.max(h1, h2) - 8);
-  }
-  legend(ctx, w, [ { label: "nordic", color: C.active }, { label: "global", color: "#5C6B7A" } ]);
-  $("caption3").textContent = "Transition-frequency histogram (global / nordic). ONLINE-gated stations skew toward higher flap counts.";
-}
-function drawBands(ctx, w, h) {
-  const bands = DATA.bands;
-  const nonEmpty = bands.filter((b) => b.total > 0);
-  heading(ctx, "High-Latitude Availability by Latitude Band", "stacked status (left axis) and mean flap count (right axis); empty ocean bands skipped");
-  const pad = { l: 100, r: 100, t: 86 };
-  const iw = w - pad.l - pad.r, ih = h - pad.t - 62;
-  const maxTotal = Math.max(1, ...bands.map((b) => b.total));
-  const maxFlaps = Math.max(0.5, ...nonEmpty.map((b) => b.meanFlaps));
-  yAxisGuides(ctx, pad, iw, pad.t, ih, 0, maxTotal, 4, true);
-  rightAxisGuides(ctx, pad.l + iw, pad.t, ih, 0, maxFlaps, 4);
-  const bw = iw / Math.max(1, bands.length);
-  bands.forEach((b, i) => {
-    let base = pad.t + ih;
-    for (const layer of LAYERS) {
-      const bh = ih * b[layer.key] / maxTotal;
-      ctx.fillStyle = layer.color; ctx.fillRect(pad.l + i * bw + 4, base - bh, bw - 8, bh);
-      base -= bh;
-    }
-    ctx.fillStyle = C.axis; ctx.font = FONT_AXIS; ctx.textAlign = "center";
-    ctx.fillText(b.label, pad.l + i * bw + bw / 2, pad.t + ih + 22);
-    ctx.fillStyle = C.text; ctx.font = "700 14px Segoe UI, DejaVu Sans, Arial";
-    ctx.fillText("n=" + b.total, pad.l + i * bw + bw / 2, pad.t + 18);
-  });
-  ctx.strokeStyle = C.gold; ctx.lineWidth = 2.2; ctx.beginPath();
-  let started = false;
-  bands.forEach((b, i) => {
-    if (b.total <= 0) return;
-    const x = pad.l + i * bw + bw / 2;
-    const y = pad.t + ih * (1 - b.meanFlaps / maxFlaps);
-    if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-  bands.forEach((b, i) => {
-    if (b.total <= 0) return;
-    const x = pad.l + i * bw + bw / 2;
-    const y = pad.t + ih * (1 - b.meanFlaps / maxFlaps);
-    ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fillStyle = C.gold; ctx.fill();
-  });
-  legend(ctx, w, [ { label: "mean flaps", color: C.gold } ].concat(LAYERS.map((l) => { return { label: l.label, color: l.color }; })));
-  $("caption3").textContent = "Availability and flap frequency across latitude bands; empty ocean bands are excluded from the flap line.";
-}
-const TABLE = { key: "name", dir: 1, ready: false };
-function zoneList() {
-  const seen = {};
-  DATA.stations.forEach((st) => { seen[st.zone] = true; });
-  return Object.keys(seen).sort();
-}
-function tableInit() {
-  if (TABLE.ready) return;
-  const zones = zoneList().map((z) => "<option value='" + z + "'>" + z + "</option>").join("");
-  $("tableFilters").innerHTML =
-    "<select id='f-country'><option value=''>All countries</option><option>NOR</option><option>SWE</option><option>FIN</option><option>DNK</option><option>ISL</option></select>" +
-    "<select id='f-status'><option value=''>All statuses</option><option>ACTIVE</option><option>ONLINE</option><option>OFFLINE</option></select>" +
-    "<select id='f-class'><option value=''>All classes</option><option>GEODNET_MINER</option><option>PUBLIC_IGS_EUREF</option></select>" +
-    "<select id='f-zone'><option value=''>All zones</option>" + zones + "</select>" +
-    "<input type='text' id='f-search' placeholder='search name or station ID'>";
-  ["f-country", "f-status", "f-class", "f-zone"].forEach((id) => $(id).addEventListener("change", renderTable));
-  $("f-search").addEventListener("input", renderTable);
-  TABLE.ready = true;
-}
-function tableFiltered() {
-  const country = $("f-country").value, status = $("f-status").value, cls = $("f-class").value;
-  const zone = $("f-zone").value, query = $("f-search").value.trim().toLowerCase();
-  return DATA.stations.filter((st) => {
-    if (country && st.country_iso !== country) return false;
-    if (status && st.status !== status) return false;
-    if (cls && st.station_class !== cls) return false;
-    if (zone && st.zone !== zone) return false;
-    if (query && st.name.toLowerCase().indexOf(query) < 0 && String(st.station_id).indexOf(query) < 0) return false;
-    return true;
-  });
-}
-function renderTable() {
-  tableInit();
-  const rows = tableFiltered();
-  const dir = TABLE.dir;
-  rows.sort((a, b) => {
-    const av = a[TABLE.key], bv = b[TABLE.key];
-    if (typeof av === "number" && typeof bv === "number") return (av - bv) * dir;
-    return String(av).localeCompare(String(bv)) * dir;
-  });
-  const keys = ["name", "station_id", "country_iso", "zone", "status", "station_class", "lat", "lng", "dist_osls_km", "dist_trom_km", "dist_nya2_km", "flaps", "uptime_pct"];
-  const labels = ["Name", "ID", "Country", "Zone", "Status", "Class", "Lat", "Lng", "OSLS km", "TROM km", "NYA2 km", "Flaps", "Uptime %"];
-  let html = "<thead><tr>" + keys.map((k, i) => "<th data-key='" + k + "'>" + labels[i] + "</th>").join("") + "</tr></thead><tbody>";
-  rows.forEach((st) => {
-    html += "<tr><td>" + st.name + "</td><td>" + st.station_id + "</td><td>" + st.country_iso + "</td><td>" + st.zone +
-      "</td><td><span class='badge' style='background:" + statusColor(st.status) + "'>" + st.status + "</span></td><td>" + st.station_class +
-      "</td><td>" + st.lat.toFixed(4) + "</td><td>" + st.lng.toFixed(4) + "</td><td>" + fmt(st.dist_osls_km) + "</td><td>" +
-      fmt(st.dist_trom_km) + "</td><td>" + fmt(st.dist_nya2_km) + "</td><td>" + fmt(st.flaps) + "</td><td>" +
-      (st.uptime_pct === null || st.uptime_pct === undefined ? "n/a" : st.uptime_pct.toFixed(1)) + "</td></tr>";
-  });
-  $("stationTable").innerHTML = html + "</tbody>";
-  Array.prototype.forEach.call($("stationTable").querySelectorAll("th"), (th) => {
-    th.addEventListener("click", () => {
-      const key = th.getAttribute("data-key");
-      if (TABLE.key === key) TABLE.dir *= -1; else { TABLE.key = key; TABLE.dir = 1; }
-      renderTable();
-    });
-  });
-  $("tableNote").textContent = rows.length + " of " + DATA.stations.length + " stations shown (click a column header to sort).";
-  $("caption3").textContent = "Full filterable and sortable station explorer.";
-}
-function renderTab3() {
-  const isTable = state.chart[3] === 2;
-  $("wrap3").classList.toggle("hidden", isTable);
-  $("tableExplorer").classList.toggle("hidden", !isTable);
-  if (isTable) { renderTable(); return; }
-  const s = setupCanvas($("canvas3")); const ctx = s.ctx, w = s.w, h = s.h;
-  frame(ctx, w, h);
-  if (state.chart[3] === 0) drawFlapHistogram(ctx, w, h);
-  else drawBands(ctx, w, h);
-}
+
+
+
 const CHIPS = {
   1: [ "Multi-Panel Daily Telemetry", "Daily Net Change & Status Shifts", "Cumulative Station Onboarding" ],
-  2: [ "Interactive Geodetic Map", "Sovereign States Breakdown", "Norwegian Latitude Zones" ],
-  3: [ "Status Flap Frequency", "Availability by Latitude Band", "Station Table Explorer" ]
+  2: [ "Interactive 3D Map", "Sovereign Breakdown", "Norway Latitude Zones" ]
 };
-const REGIONS = [ { id: "all", label: "All Nordic [302]" }, { id: "norway", label: "Norway Only [92]" },
-  { id: "auroral", label: "Auroral & Svalbard >=65N [17]" } ];
+const REGIONS = [ { id: "all", label: "All Nordic" }, { id: "norway", label: "Norway Only" },
+  { id: "auroral", label: "Auroral Oval >=65N" } ];
 function chip(label, cls, onClick) {
   const b = document.createElement("button");
   b.className = "chip " + (cls || "");
@@ -682,10 +534,21 @@ function chip(label, cls, onClick) {
   b.addEventListener("click", onClick);
   return b;
 }
-function separator() { const s = document.createElement("span"); s.className = "sep"; return s; }
-function miniLabel(text) { const s = document.createElement("span"); s.className = "label-mini"; s.textContent = text; return s; }
-function toggleChip(label, key) {
-  const b = chip(label, "sub" + (state.layers[key] ? " active" : ""), () => {
+function segGroup(title, extraClass) {
+  const group = document.createElement("div");
+  group.className = "seg-group" + (extraClass ? " " + extraClass : "");
+  const label = document.createElement("span");
+  label.className = "seg-title";
+  label.textContent = title;
+  const row = document.createElement("div");
+  row.className = "seg-row";
+  group.appendChild(label);
+  group.appendChild(row);
+  group.row = row;
+  return group;
+}
+function toggleLayerChip(label, key) {
+  const b = chip(label, state.layers[key] ? "active" : "", () => {
     state.layers[key] = !state.layers[key];
     b.classList.toggle("active", state.layers[key]);
     renderTab2();
@@ -693,49 +556,59 @@ function toggleChip(label, key) {
   return b;
 }
 function buildChips() {
-  for (const tab of [1, 2, 3]) {
-    const box = $("controls" + tab);
-    CHIPS[tab].forEach((label, i) => {
-      const b = chip(label, state.chart[tab] === i ? "active" : "", () => {
-        state.chart[tab] = i;
-        Array.prototype.forEach.call(box.querySelectorAll(".chip[data-kind='chart']"), (x) => x.classList.remove("active"));
-        b.classList.add("active");
-        render();
-      });
-      b.setAttribute("data-kind", "chart");
-      box.appendChild(b);
-    });
-  }
-  const box2 = $("controls2");
-  box2.appendChild(separator());
-  box2.appendChild(miniLabel("Region"));
-  REGIONS.forEach((rg) => {
-    const b = chip(rg.label, "filter" + (rg.id === "all" ? " active" : ""), () => {
-      state.region = rg.id;
-      Array.prototype.forEach.call(box2.querySelectorAll(".chip.filter"), (x) => x.classList.remove("active"));
+  const box1 = $("controls1");
+  CHIPS[1].forEach((label, i) => {
+    const b = chip(label, state.chart[1] === i ? "active" : "", () => {
+      state.chart[1] = i;
+      Array.prototype.forEach.call(box1.querySelectorAll(".chip"), (x) => x.classList.remove("active"));
       b.classList.add("active");
       render();
     });
-    box2.appendChild(b);
+    box1.appendChild(b);
   });
-  box2.appendChild(separator());
-  box2.appendChild(miniLabel("Camera"));
+  const box2 = $("controls2");
+  const viewGroup = segGroup("View");
+  CHIPS[2].forEach((label, i) => {
+    const b = chip(label, state.chart[2] === i ? "active" : "", () => {
+      state.chart[2] = i;
+      Array.prototype.forEach.call(viewGroup.row.querySelectorAll(".chip"), (x) => x.classList.remove("active"));
+      b.classList.add("active");
+      render();
+    });
+    viewGroup.row.appendChild(b);
+  });
+  box2.appendChild(viewGroup);
+  const regionGroup = segGroup("Region Filter");
+  const regionLabels = { all: "All Nordic (" + DATA.totals.nordic + ")",
+    norway: "Norway Only (" + DATA.totals.norway + ")", auroral: "Auroral Oval >=65N" };
+  REGIONS.forEach((rg) => {
+    const b = chip(regionLabels[rg.id] || rg.label, state.region === rg.id ? "active" : "", () => {
+      state.region = rg.id;
+      Array.prototype.forEach.call(regionGroup.row.querySelectorAll(".chip"), (x) => x.classList.remove("active"));
+      b.classList.add("active");
+      render();
+    });
+    regionGroup.row.appendChild(b);
+  });
+  box2.appendChild(regionGroup);
+  const cameraGroup = segGroup("Camera");
   FOCUS.forEach((f) => {
-    box2.appendChild(chip(f.label, "sub", () => {
+    cameraGroup.row.appendChild(chip(f.label, "", () => {
       const s = setupCanvas($("canvas2"));
       focusById(f.id, s.w, s.h);
       renderTab2();
     }));
   });
-  box2.appendChild(chip("Reset Zoom", "sub", () => {
+  cameraGroup.row.appendChild(chip("Reset Zoom", "", () => {
     const s = setupCanvas($("canvas2"));
     focusById("mainland", s.w, s.h);
     renderTab2();
   }));
-  const boxL = $("mapLayers");
-  boxL.appendChild(miniLabel("Map Layers"));
-  boxL.appendChild(toggleChip("RTK 15km/30km Coverage Rings", "rtk"));
-  boxL.appendChild(toggleChip("IGS Baseline Vectors", "igs"));
+  box2.appendChild(cameraGroup);
+  const layerGroup = segGroup("Map Layers", "seg-layer");
+  layerGroup.row.appendChild(toggleLayerChip("RTK Coverage Rings", "rings"));
+  layerGroup.row.appendChild(toggleLayerChip("IGS Baseline Vectors", "vectors"));
+  box2.appendChild(layerGroup);
 }
 function buildKpi() {
   const t = DATA.totals;
@@ -753,14 +626,12 @@ function buildKpi() {
 function render() {
   $("panel1").classList.toggle("hidden", state.tab !== 1);
   $("panel2").classList.toggle("hidden", state.tab !== 2);
-  $("panel3").classList.toggle("hidden", state.tab !== 3);
   Array.prototype.forEach.call(document.querySelectorAll(".tab-btn"), (b) => {
     b.classList.toggle("active", Number(b.getAttribute("data-tab")) === state.tab);
   });
   hideTooltip();
   if (state.tab === 1) renderTab1();
-  else if (state.tab === 2) renderTab2();
-  else renderTab3();
+  else renderTab2();
 }
 function bindTabs() {
   Array.prototype.forEach.call(document.querySelectorAll(".tab-btn"), (b) => {
