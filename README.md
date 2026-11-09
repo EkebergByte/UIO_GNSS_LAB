@@ -58,7 +58,7 @@ and performs **no network request** at runtime.
 
 ---
 
-## Network Snapshot (current cache)
+## Network Telemetry Snapshot (Observation Epoch: 2026-11-09 UTC)
 
 | Scope | Metric | Value |
 | :--- | :--- | ---: |
@@ -101,33 +101,6 @@ cargo run -- --serve
 `--classify` recomputes the Nordic classification from the local snapshot cache and rewrites
 `data/nordic_geodnet_stations.csv` and `data/norway_only_stations.csv` (atomic write). `--serve`
 starts the dashboard on a free port between 8085 and 8095 and opens it in the browser.
-
-### CLI
-
-```
-usage: uio-gnss-lab <command>
-  --classify       classify Nordic stations and refresh CSV files
-  --check-purity   scan Rust sources for forbidden comment tokens
-  --serve          start the local dashboard server
-  --process-iono   process RINEX and compute STEC/ROTI (Phase R3-R4)
-```
-
----
-
-## Quality Gates
-
-The engine is held to four automated gates, all enforced in CI on every push and pull request:
-
-```bash
-cargo run -- --check-purity       # no forbidden comment tokens in src/*.rs
-cargo check --message-format=short
-cargo test                        # invariant unit tests (geometry, zones, CSV, payload schema)
-cargo run -- --classify           # data parity: regenerated CSVs must be byte-identical
-```
-
-Numerical code follows IEEE-754 discipline: trigonometric arguments are clamped, every division is
-guarded (`|denominator| > 1e-12`), and every output metric passes a `finite` check before
-deterministic rounding. File writes are atomic (temporary file + rename).
 
 ---
 

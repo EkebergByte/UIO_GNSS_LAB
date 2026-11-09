@@ -1,25 +1,25 @@
-# High-Latitude GNSS Infrastructure & Quality Control Telemetry (GEODNET / IGS)
+# High-Latitude GNSS Infrastructure & Quality-Control Telemetry
 
 [![CI](https://github.com/EkebergByte/UIO_GNSS_LAB/actions/workflows/ci.yml/badge.svg)](https://github.com/EkebergByte/UIO_GNSS_LAB/actions/workflows/ci.yml)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
+[![Rust 1.80+](https://img.shields.io/badge/rust-1.80%2B-orange)](https://www.rust-lang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 An independent GNSS data-science project at the **University of Oslo** (Mathematics: Data,
 Modelling and Computations). It classifies GEODNET reference stations across the Nordic region and
-visualises their quality-control behaviour at high latitudes. Everything runs on the **Python
-standard library** — no external packages are required.
+monitors their quality-control behaviour at high latitudes. The engine is written in **Rust** and
+runs entirely from local data — no external services are required at runtime.
 
 **Screenshots** *(click any image to view full resolution)*
 
 <table>
   <tr>
     <td align="center" width="33%">
-      <a href="assets/01_multi_panel_telemetry.png"><img src="assets/01_multi_panel_telemetry.png" width="360" alt="Multi-Panel Daily Telemetry (3-track view)"/></a>
+      <a href="assets/01_multi_panel_telemetry.png"><img src="assets/01_multi_panel_telemetry.png" width="360" alt="Multi-Panel Daily Telemetry"/></a>
       <br/><sub>Tab 1 — Multi-Panel Daily Telemetry (3-track ACTIVE / ONLINE / OFFLINE).</sub>
     </td>
     <td align="center" width="33%">
       <a href="assets/02_cumulative_onboarding.png"><img src="assets/02_cumulative_onboarding.png" width="360" alt="Cumulative Station Onboarding"/></a>
-      <br/><sub>Tab 1 — Cumulative Station Onboarding ({{COHORT_NEW}} new stations).</sub>
+      <br/><sub>Tab 1 — Cumulative Station Onboarding.</sub>
     </td>
     <td align="center" width="33%">
       <a href="assets/03_geodetic_map_3d.png"><img src="assets/03_geodetic_map_3d.png" width="360" alt="Interactive 3D-styled geodetic map"/></a>
@@ -30,124 +30,76 @@ standard library** — no external packages are required.
 
 ---
 
-## What Is Included Right Now
+## What GEODNET Is
 
-Two working programs and three research datasets.
+GEODNET (Global Earth Observation Decentralized Network) is a **global reference-station
+infrastructure** that supplies centimetre-level RTK corrections and post-processed GNSS data to
+industry. It is not a hobbyist network: surveying firms, machine-control fleets, autonomous
+platforms and geodetic services depend on it as production infrastructure, so a single degraded or
+offline reference station degrades an entire service region.
 
-**Programs**
+Every station is therefore continuously scored against a hard quality gate — **epoch completeness
+≥ 90 %** and **multipath MP12 ≤ 0.7 m** — and the network is only as strong as its weakest node.
+This project takes that industrial framing seriously: it treats station availability, status
+transitions and geometric coverage as first-class telemetry, and asks what the high-latitude
+(Nordic) sub-network actually looks like when measured independently.
 
-1. `src/nordic_station_classifier.py` — topology and network classification. It tests every station
-   against the Natural Earth 1:10m national boundaries (point-in-multipolygon, with a 20 km coastal
-   closure for fjords), splits Norway into five research zones, separates hardware classes, and
-   writes the CSV datasets, the report and this README.
-2. `src/telemetry_ui.py` — a local dashboard server. It serves the interactive three-tab dashboard
-   and a JSON endpoint `/api/telemetry` built from the local files only.
+## What This Project Does
 
-**Datasets**
+1. **Topology classification** (`--classify`). Every station in the cached snapshot is tested
+   against Natural Earth 1:10m national boundaries (point-in-multipolygon, with a 20 km coastal
+   fallback for fjords), assigned to a sovereign state, split into Norwegian research zones,
+   separated into hardware classes, and written to two versioned CSV datasets.
+2. **Local dashboard** (`--serve`). A dependency-free HTTP server exposes an interactive three-tab
+   dashboard and a JSON endpoint (`/api/telemetry`) assembled purely from local files.
 
-- `data/nordic_geodnet_stations.csv` — all Nordic stations ({{NORDIC_TOTAL}}).
-- `data/norway_only_stations.csv` — Norwegian stations only ({{NORWAY_TOTAL}}), sorted by distance to `OSLS`.
-- `data/nordic_boundaries_10m.geojson` — Natural Earth 1:10m polygons for the five Nordic states.
-
-**What each chart shows**
-
-*Tab 1 — Network Growth & Historical Series*
-- *Multi-Panel Daily Telemetry (3-Track View):* synchronized daily series of `ACTIVE` (RTK-ready),
-  `ONLINE` (held by the QC gate: epoch completeness < 90 %, multipath MP12 > 0.7 m, or SNR < 32
-  dB-Hz) and `OFFLINE` stations, each on its own Y axis. This makes it easy to spot days of
-  network-wide quality degradation, when stations move from `ACTIVE` to `ONLINE`.
-- *Daily Net Change & Status Shifts:* net day-over-day change in the number of active stations.
-- *Cumulative Station Onboarding:* cumulative curve of new stations ({{COHORT_NEW}} new stations over
-  the {{ARCHIVE_DAYS}}-day archive window).
-
-*Tab 2 — Nordic & Norway Geodetic Map*
-- *Interactive 3D-Styled Geodetic Map (Natural Earth 1:10m):* interactive map of Scandinavia,
-  Norway and Svalbard with the auroral-oval band (`65°N Auroral Oval`), RTK coverage rings
-  (`15 km / 30 km`), Haversine baseline vectors to three official IGS/EUREF observatories (`OSLS`
-  in Oslo, `TROM` in Tromsø, `NYA2` on Svalbard), and region filtering that keeps the current zoom.
-- *Sovereign States & Norwegian Latitudinal Zones:* the {{NORDIC_TOTAL}} stations across the five Nordic
-  countries (`SWE`, `NOR`, `DNK`, `FIN`, `ISL`) and the {{NORWAY_TOTAL}} Norwegian stations split into five
-  latitude zones and two hardware classes (`GEODNET_MINER` vs `PUBLIC_IGS_EUREF`).
-
-*Tab 3 — Regional Analytics*
-- *Sovereign States & Norway Latitude Zones:* grouped horizontal bar charts comparing ACTIVE /
-  ONLINE / OFFLINE counts across the five sovereign states and the five Norwegian research zones.
+Classification is **cache-first**: the engine reads `data/global_stations_snapshot.json` from disk
+and performs **no network request** at runtime.
 
 ---
 
-## Live Network Dataset (Snapshot: {{SNAPSHOT_FETCHED_AT}})
+## Network Telemetry Snapshot (Observation Epoch: {{OBSERVATION_EPOCH}} UTC)
 
-Global stations observed: **{{TOTAL_STATIONS}}** — Nordic stations: **{{NORDIC_TOTAL}}** — Norway:
-**{{NORWAY_TOTAL}}**.
+| Scope | Metric | Value |
+| :--- | :--- | ---: |
+| Global coverage feed | stations reported | {{GLOBAL_TOTAL}} |
+| Global coverage feed | ACTIVE / ONLINE / OFFLINE | {{GLOBAL_ACTIVE}} / {{GLOBAL_ONLINE}} / {{GLOBAL_OFFLINE}} |
+| Nordic (5 states) | classified stations | {{NORDIC_TOTAL}} |
+| Nordic | ACTIVE / ONLINE / OFFLINE | {{NORDIC_ACTIVE}} / {{NORDIC_ONLINE}} / {{NORDIC_OFFLINE}} |
+| Nordic | GEODNET_MINER / PUBLIC_IGS_EUREF | {{MINER_TOTAL}} / {{PUBLIC_TOTAL}} |
+| Norway | stations | {{NORWAY_TOTAL}} |
+| Norway | Svalbard (above 74° N) | {{SVALBARD_TOTAL}} |
 
-### Nordic stations by sovereign state
+Nordic distribution by state: **{{COUNTRY_DISTRIBUTION}}**.
 
-{{COUNTRY_TABLE}}
-
-### Kingdom of Norway — research zones
-
-{{NORWAY_ZONE_TABLE}}
-
-### Hardware class (Nordic region)
-
-| Class | Stations |
-| :--- | ---: |
-| `GEODNET_MINER` | {{MINER_TOTAL}} |
-| `PUBLIC_IGS_EUREF` | {{PUBLIC_TOTAL}} |
+Norwegian research zones: **{{ZONE_DISTRIBUTION}}**.
 
 ---
 
-## Upcoming Research Phases
+## Data Sources
 
-- **Phase 2 — Dual-frequency signal engine.** A parser for RINEX 3.04 and RTCM 3.2 observations
-  (L1/L2/E5a) that computes Slant TEC (STEC) from the geometry-free combination and the ROTI index
-  (Welford online standard deviation, ionospheric pierce point at 350 km).
-- **Phase 3 — Error separation.** Statistical separation of regional space weather (auroral
-  scintillation) from local antenna-installation errors (multipath MP12, QC error code 310).
+Station inventory, status and coordinates come from the GEODNET coverage feed
+(`rtk.geodnet.com/api/v2/coverage_stations`); country classification uses Natural Earth 1:10m
+Admin-0 (v5.1.2); baselines reference the IGS/EUREF stations OSLS (Oslo), TROM (Tromsø) and
+NYA2 (Ny-Ålesund). Provenance and the full snapshot/CSV schema are in
+[`DATA_SOURCES.md`](DATA_SOURCES.md).
 
 ---
 
-## How to Run (Windows, macOS, Linux)
+## How to Run
 
-Requirements: **Python 3.11+**. No third-party libraries — the standard library is enough.
-
-### Windows (PowerShell or CMD)
-
-```bat
-git clone https://github.com/EkebergByte/UIO_GNSS_LAB.git
-cd UIO_GNSS_LAB
-python src\nordic_station_classifier.py
-python src\nordic_station_classifier.py --refresh
-python src\telemetry_ui.py
-```
-
-### macOS / Linux (Bash or Zsh)
+Requirements: **Rust 1.80+**. No external services are needed at runtime.
 
 ```bash
 git clone https://github.com/EkebergByte/UIO_GNSS_LAB.git
 cd UIO_GNSS_LAB
-python3 src/nordic_station_classifier.py
-python3 src/nordic_station_classifier.py --refresh
-python3 src/telemetry_ui.py
+cargo run -- --classify
+cargo run -- --serve
 ```
 
-`python src/nordic_station_classifier.py` recomputes the classification from the local cache (no
-network). Add `--refresh` to fetch a fresh network snapshot first. `python src/telemetry_ui.py`
-starts the local dashboard and opens it in your browser on a free port between 8085 and 8095.
-
----
-
-## Testing
-
-The test suite uses the Python standard library (`unittest`) and requires no third-party packages:
-
-```bash
-python -m unittest discover -s tests -t tests -v
-python check_purity.py
-```
-
-The three quality gates (purity, byte-compile and unit tests) run automatically on every push and
-pull request via GitHub Actions (`.github/workflows/ci.yml`).
+`--classify` recomputes the Nordic classification from the local snapshot cache and rewrites
+`data/nordic_geodnet_stations.csv` and `data/norway_only_stations.csv` (atomic write). `--serve`
+starts the dashboard on a free port between 8085 and 8095 and opens it in the browser.
 
 ---
 
@@ -155,43 +107,34 @@ pull request via GitHub Actions (`.github/workflows/ci.yml`).
 
 ```
 UIO_GNSS_LAB/
-├── README.md
-├── LICENSE
-├── DATA_SOURCES.md
-├── pyproject.toml
-├── check_purity.py
-├── .gitignore
-├── .gitattributes
-├── .editorconfig
-├── .github/
-│   └── workflows/
-│       └── ci.yml
-├── src/
-│   ├── nordic_station_classifier.py   classification + dataset/report/README generator
-│   ├── gnss_common.py                 shared constants, geometry helpers and observatories
-│   ├── telemetry_ui.py                local dashboard server (/api/telemetry)
-│   └── dashboard.html                 three-tab interactive dashboard
-├── tests/
-│   ├── test_gnss_common.py
-│   ├── test_classifier.py
-│   └── test_telemetry_ui.py
-├── data/
-│   ├── nordic_boundaries_10m.geojson
-│   ├── nordic_geodnet_stations.csv
-│   └── norway_only_stations.csv
-├── docs/
-│   ├── report_template.md
-│   ├── NORDIC_NETWORK_REPORT.md
-│   └── readme_template.md
-└── assets/
-    ├── 01_multi_panel_telemetry.png
-    ├── 02_cumulative_onboarding.png
-    └── 03_geodetic_map_3d.png
+├── Cargo.toml · README.md · DATA_SOURCES.md · LICENSE
+├── src/                     Rust engine
+│   ├── main.rs              CLI entry point
+│   ├── types.rs             constants, status enum, data records
+│   ├── geo.rs               Haversine, point-in-polygon, coastal buffer, zones
+│   ├── classify_engine.rs   classification pipeline and CSV writer
+│   ├── payload.rs           cached dashboard JSON payload builder
+│   ├── server.rs            local HTTP server
+│   └── dashboard.html       three-tab interactive dashboard
+├── data/                    boundaries and generated CSV datasets
+├── docs/                    report and README templates
+├── repos/                   vendored upstream API references
+└── assets/                  dashboard screenshots
 ```
 
 ---
 
-## Acknowledgement
+## Roadmap
+
+- **Phase R3 — Dual-frequency signal engine.** A RINEX 3.04 / RTCM 3.2 parser (L1/L2/E5a) that
+  computes Slant TEC from the geometry-free combination and the ROTI index (Welford online
+  standard deviation, ionospheric pierce point at 350 km).
+- **Phase R4 — Error separation.** Statistical separation of regional space weather (auroral
+  scintillation) from local antenna-installation errors (multipath MP12, QC error code 310).
+
+---
+
+## Acknowledgements
 
 Thanks to the **GEODNET Foundation** and its station operators for the open reference network; the
 **IGS** and **EUREF** permanent networks for the reference stations used as benchmarks; and
