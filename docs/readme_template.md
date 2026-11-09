@@ -40,7 +40,7 @@ Two working programs and three research datasets.
    against the Natural Earth 1:10m national boundaries (point-in-multipolygon, with a 20 km coastal
    closure for fjords), splits Norway into five research zones, separates hardware classes, and
    writes the CSV datasets, the report and this README.
-2. `src/telemetry_ui.py` — a local dashboard server. It serves the interactive two-tab dashboard
+2. `src/telemetry_ui.py` — a local dashboard server. It serves the interactive three-tab dashboard
    and a JSON endpoint `/api/telemetry` built from the local files only.
 
 **Datasets**
@@ -68,6 +68,10 @@ Two working programs and three research datasets.
 - *Sovereign States & Norwegian Latitudinal Zones:* the {{NORDIC_TOTAL}} stations across the five Nordic
   countries (`SWE`, `NOR`, `DNK`, `FIN`, `ISL`) and the {{NORWAY_TOTAL}} Norwegian stations split into five
   latitude zones and two hardware classes (`GEODNET_MINER` vs `PUBLIC_IGS_EUREF`).
+
+*Tab 3 — Regional Analytics*
+- *Sovereign States & Norway Latitude Zones:* grouped horizontal bar charts comparing ACTIVE /
+  ONLINE / OFFLINE counts across the five sovereign states and the five Norwegian research zones.
 
 ---
 
@@ -166,7 +170,7 @@ UIO_GNSS_LAB/
 │   ├── nordic_station_classifier.py   classification + dataset/report/README generator
 │   ├── gnss_common.py                 shared constants, geometry helpers and observatories
 │   ├── telemetry_ui.py                local dashboard server (/api/telemetry)
-│   └── dashboard.html                 two-tab interactive dashboard
+│   └── dashboard.html                 three-tab interactive dashboard
 ├── tests/
 │   ├── test_gnss_common.py
 │   ├── test_classifier.py

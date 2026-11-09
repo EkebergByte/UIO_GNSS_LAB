@@ -6,7 +6,7 @@
 <title>GEODNET High-Latitude Telemetry Dashboard</title>
 <style>
 * { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; background: #0D1117; color: #E2E8F0;
+html, body { margin: 0; padding: 0; background: #040711; color: #E2E8F0;
   font-family: "Segoe UI", "DejaVu Sans", Arial, sans-serif; }
 #kpi { display: flex; flex-wrap: wrap; gap: 12px; padding: 16px 20px 10px 20px; }
 .kpi-card { flex: 1 1 170px; background: #141A23; border: 1px solid #2D3748;
@@ -36,19 +36,25 @@ main { padding: 16px 20px 28px 20px; }
   box-shadow: 0 0 0 1px #2AB7CA inset, 0 0 14px rgba(42,183,202,0.6); }
 .canvas-wrap { background: #141A23; border: 1px solid #2D3748; border-radius: 10px; padding: 8px; width: 100%; }
 canvas { display: block; width: 100%; height: 64vh; min-height: 470px; cursor: crosshair; }
+#canvas2 { height: calc(100vh - 190px); min-height: 560px; }
 .caption { color: #94A3B8; font-size: 14px; margin-top: 12px; line-height: 1.55; }
 .hidden { display: none; }
-#tooltip { position: fixed; pointer-events: none; background: #0D1117F2; border: 1px solid #2D3748;
-  border-radius: 8px; padding: 11px 14px; font-size: 14px; color: #E2E8F0; z-index: 50;
-  max-width: 360px; line-height: 1.55; box-shadow: 0 8px 28px rgba(0,0,0,0.6); }
-#tooltip .tt-name { font-weight: 700; color: #66C2A5; font-size: 15px; }
+#tooltip { position: fixed; pointer-events: none; background: #0B111A; border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 8px; padding: 12px 16px; color: #E2E8F0; z-index: 50; min-width: 210px;
+  line-height: 1.4; box-shadow: 0 10px 30px rgba(0,0,0,0.55); }
+#tooltip .tt-head { display: flex; align-items: center; gap: 10px; }
+#tooltip .tt-uid { font-size: 17px; font-weight: 700; letter-spacing: 0.02em; }
+#tooltip .tt-pill { font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 10px; color: #0B111A; }
+#tooltip .tt-coord { font-size: 15px; color: #94A3B8; margin-top: 6px; font-variant-numeric: tabular-nums; }
+#tooltip .tt-name { font-size: 15px; font-weight: 700; color: #66C2A5; }
 </style>
 </head>
 <body>
 <header id="kpi"></header>
 <nav id="tabs">
-  <button class="tab-btn active" data-tab="1">1 &#183; Network Dynamics &amp; History</button>
-  <button class="tab-btn" data-tab="2">2 &#183; Nordic &amp; Norway Geodetic Map</button>
+  <button class="tab-btn active" data-tab="1">1 &#183; Network Dynamics</button>
+  <button class="tab-btn" data-tab="2">2 &#183; Geodetic Map</button>
+  <button class="tab-btn" data-tab="3">3 &#183; Regional Analytics</button>
 </nav>
 <main>
   <section id="panel1" class="tab-panel">
@@ -60,6 +66,11 @@ canvas { display: block; width: 100%; height: 64vh; min-height: 470px; cursor: c
     <div class="seg-toolbar" id="controls2"></div>
     <div class="canvas-wrap"><canvas id="canvas2"></canvas></div>
     <div class="caption" id="caption2"></div>
+  </section>
+  <section id="panel3" class="tab-panel hidden">
+    <div class="controls" id="controls3"></div>
+    <div class="canvas-wrap"><canvas id="canvas3"></canvas></div>
+    <div class="caption" id="caption3"></div>
   </section>
 </main>
 <div id="tooltip" class="hidden"></div>
@@ -76,7 +87,7 @@ const FONT_AXIS = "700 13px Segoe UI, DejaVu Sans, Arial";
 const FONT_LEGEND = "700 14px Segoe UI, DejaVu Sans, Arial";
 const FONT_LABEL = "700 14px Segoe UI, DejaVu Sans, Arial";
 let DATA = null;
-const state = { tab: 1, chart: { 1: 0, 2: 0 }, region: "all",
+const state = { tab: 1, chart: { 1: 0, 3: 0 }, region: "all",
   layers: { rings: false, vectors: true } };
 const $ = (id) => document.getElementById(id);
 function setupCanvas(canvas) {
@@ -231,10 +242,10 @@ const KX = Math.cos(66 * Math.PI / 180);
 const MAP = { scale: 0, offX: 0, offY: 0, fit: false, proj: {}, hits: [],
   hover: null, pinned: null, dragging: false, lx: 0, ly: 0 };
 const FOCUS = [
-  { id: "mainland", label: "Mainland (55-72N)", lng0: 4.0, lng1: 31.5, lat0: 55.0, lat1: 71.8 },
+  { id: "mainland", label: "Nordic", lng0: 4.0, lng1: 31.5, lat0: 55.0, lat1: 71.8 },
   { id: "south", label: "Oslo South", lng0: 5.0, lng1: 13.0, lat0: 58.0, lat1: 62.0 },
   { id: "tromso", label: "Tromso North", lng0: 12.0, lng1: 31.0, lat0: 65.0, lat1: 72.0 },
-  { id: "svalbard", label: "Svalbard Arctic", lng0: 8.0, lng1: 33.0, lat0: 74.0, lat1: 80.0 }
+  { id: "svalbard", label: "Svalbard", lng0: 8.0, lng1: 33.0, lat0: 74.0, lat1: 80.0 }
 ];
 function project(lng, lat) { return [ lng * KX, lat ]; }
 function toScreen(lng, lat) {
@@ -268,17 +279,63 @@ function ringPath(ctx, ring) {
   ctx.closePath();
 }
 function drawLand(ctx, w, h) {
-  const grad = ctx.createLinearGradient(0, 0, 0, h);
-  grad.addColorStop(0, "#1C2636"); grad.addColorStop(1, "#151D2A");
   for (const iso of Object.keys(MAP.proj)) {
     const rings = MAP.proj[iso];
-    ctx.save(); ctx.translate(3, 4); ctx.fillStyle = "#06090E";
-    for (const ring of rings) { ctx.beginPath(); ringPath(ctx, ring); ctx.fill(); }
-    ctx.restore();
-    for (const ring of rings) { ctx.beginPath(); ringPath(ctx, ring); ctx.fillStyle = grad; ctx.fill(); }
-    ctx.strokeStyle = C.coast; ctx.lineWidth = 1.4;
+    for (const ring of rings) { ctx.beginPath(); ringPath(ctx, ring); ctx.fillStyle = "#131C28"; ctx.fill(); }
+    ctx.save();
+    ctx.strokeStyle = "#38BDF8"; ctx.lineWidth = 1.2;
+    ctx.shadowColor = "#0284C7"; ctx.shadowBlur = 6;
     for (const ring of rings) { ctx.beginPath(); ringPath(ctx, ring); ctx.stroke(); }
+    ctx.restore();
   }
+}
+
+const DEG2RAD = Math.PI / 180, RAD2DEG = 180 / Math.PI;
+const GEO_POLE_LAT = 80.5, GEO_POLE_LNG = -72.6;
+function geomagneticToGeographic(geomLatDeg, geomLonRad) {
+  const phi0 = GEO_POLE_LAT * DEG2RAD, lam0 = GEO_POLE_LNG * DEG2RAD;
+  const phiG = geomLatDeg * DEG2RAD, lamG = geomLonRad;
+  const sinPhi = Math.sin(phi0) * Math.sin(phiG) + Math.cos(phi0) * Math.cos(phiG) * Math.cos(lamG);
+  const phi = Math.asin(Math.max(-1, Math.min(1, sinPhi)));
+  const y = Math.cos(phiG) * Math.sin(lamG);
+  const x = Math.cos(phi0) * Math.sin(phiG) - Math.sin(phi0) * Math.cos(phiG) * Math.cos(lamG);
+  let lam = lam0 + Math.atan2(y, x);
+  lam = ((lam + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
+  return [lam * RAD2DEG, phi * RAD2DEG];
+}
+function drawAurora(ctx, w, h) {
+  const kp = 2;
+  const samples = 360;
+  const equator = [], poleward = [];
+  let prevLng = null, offset = 0;
+  for (let i = 0; i <= samples; i++) {
+    const theta = 2 * Math.PI * i / samples;
+    const phiEq = 69.5 - 4.5 * Math.cos(theta) - 1.2 * kp;
+    const phiPole = 75.0 - 3.5 * Math.cos(theta) - 0.4 * kp;
+    const eq = geomagneticToGeographic(phiEq, theta);
+    const po = geomagneticToGeographic(phiPole, theta);
+    if (prevLng !== null) {
+      const d = eq[0] - prevLng;
+      if (d > 180) offset -= 360; else if (d < -180) offset += 360;
+    }
+    prevLng = eq[0];
+    equator.push([eq[0] + offset, eq[1]]);
+    poleward.push([po[0] + offset, po[1]]);
+  }
+  const pts = poleward.concat(equator.slice().reverse()).map((pt) => toScreen(pt[0], pt[1]));
+  let minY = 1e9, maxY = -1e9;
+  for (const s of pts) { if (s[1] < minY) minY = s[1]; if (s[1] > maxY) maxY = s[1]; }
+  const grad = ctx.createLinearGradient(0, minY, 0, maxY);
+  grad.addColorStop(0, "rgba(168, 85, 247, 0.05)");
+  grad.addColorStop(1, "rgba(16, 185, 129, 0.08)");
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, 0, w, h); ctx.clip();
+  ctx.beginPath();
+  pts.forEach((s, i) => { if (i === 0) ctx.moveTo(s[0], s[1]); else ctx.lineTo(s[0], s[1]); });
+  ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+  ctx.strokeStyle = "rgba(168, 85, 247, 0.10)"; ctx.lineWidth = 1; ctx.stroke();
+  ctx.restore();
 }
 function drawAurora(ctx, w) {
   const yTop = toScreen(0, 71.5)[1], yBot = toScreen(0, 65.0)[1];
@@ -341,12 +398,15 @@ function kmToPixels(lat, km) {
 function drawCoverageRings(ctx) {
   const stations = filteredStations();
   ctx.save();
+  ctx.globalCompositeOperation = "screen";
   for (const st of stations) {
     const p = toScreen(st.lng, st.lat);
     const r15 = kmToPixels(st.lat, 15), r30 = kmToPixels(st.lat, 30);
-    ctx.globalAlpha = 0.12; ctx.strokeStyle = C.active; ctx.lineWidth = 1;
+    ctx.shadowColor = "#00F0FF"; ctx.shadowBlur = 4;
+    ctx.strokeStyle = "rgba(0, 240, 255, 0.28)"; ctx.lineWidth = 1.2;
     ctx.beginPath(); ctx.arc(p[0], p[1], r15, 0, Math.PI * 2); ctx.stroke();
-    ctx.globalAlpha = 0.08; ctx.strokeStyle = C.online;
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "rgba(245, 158, 11, 0.18)"; ctx.lineWidth = 1.0;
     ctx.beginPath(); ctx.arc(p[0], p[1], r30, 0, Math.PI * 2); ctx.stroke();
   }
   ctx.restore();
@@ -370,11 +430,18 @@ function drawFocus(ctx, st) {
   const p = toScreen(st.lng, st.lat);
   if (state.layers.rings) {
     const r15 = kmToPixels(st.lat, 15), r30 = kmToPixels(st.lat, 30);
-    ctx.setLineDash([6, 4]); ctx.strokeStyle = C.active; ctx.lineWidth = 1.7;
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = 0.9;
+    ctx.shadowColor = "#00F0FF"; ctx.shadowBlur = 14;
+    ctx.strokeStyle = "rgba(0, 240, 255, 0.95)"; ctx.lineWidth = 1.8;
     ctx.beginPath(); ctx.arc(p[0], p[1], r15, 0, Math.PI * 2); ctx.stroke();
-    ctx.setLineDash([2, 5]); ctx.strokeStyle = C.online;
+    ctx.shadowColor = "#F59E0B"; ctx.strokeStyle = "rgba(245, 158, 11, 0.9)";
     ctx.beginPath(); ctx.arc(p[0], p[1], r30, 0, Math.PI * 2); ctx.stroke();
-    ctx.setLineDash([]);
+    ctx.restore();
+    ctx.fillStyle = C.text; ctx.font = FONT_LABEL; ctx.textAlign = "left";
+    ctx.fillText("15 km", p[0] + r15 + 6, p[1] + 4);
+    ctx.fillText("30 km", p[0] + r30 + 6, p[1] + 4);
   }
   if (state.layers.vectors) {
     const near = nearestObservatory(st);
@@ -400,13 +467,12 @@ function showHtmlTooltip(evt, html) {
 }
 function hideTooltip() { $("tooltip").classList.add("hidden"); }
 function stationTooltip(st) {
-  return "<div class='tt-name'>" + st.name + "</div>Station ID: " + fmt(st.station_id) +
-    "<br>Country: " + st.country_iso + " | Zone: " + st.zone +
-    "<br>Status: " + st.status + " | Class: " + st.station_class +
-    "<br>Lat / Lng: " + st.lat.toFixed(4) + " / " + st.lng.toFixed(4) +
-    "<br>Dist OSLS / TROM / NYA2: " + fmt(st.dist_osls_km) + " / " + fmt(st.dist_trom_km) + " / " + fmt(st.dist_nya2_km) + " km" +
-    "<br>Flaps: " + fmt(st.flaps) + " | First Seen: " + dayStr(st.first_seen_ms) +
-    "<br>Uptime: " + (st.uptime_pct === null || st.uptime_pct === undefined ? "n/a" : st.uptime_pct.toFixed(1) + "%");
+  const latTxt = Math.abs(st.lat).toFixed(2) + (st.lat >= 0 ? "\u00B0N" : "\u00B0S");
+  const lngTxt = Math.abs(st.lng).toFixed(2) + (st.lng >= 0 ? "\u00B0E" : "\u00B0W");
+  const color = statusColor(st.status);
+  return "<div class='tt-head'><span class='tt-uid' style='color:" + color + "'>" + st.name + "</span>" +
+    "<span class='tt-pill' style='background:" + color + "'>" + st.status + "</span></div>" +
+    "<div class='tt-coord'>" + latTxt + ", " + lngTxt + "</div>";
 }
 function nearestHit(mx, my, tol) {
   let best = null, bestD = tol;
@@ -421,7 +487,7 @@ function bindMapEvents() {
   cv.addEventListener("mousedown", (e) => { MAP.dragging = true; MAP.lx = e.clientX; MAP.ly = e.clientY; MAP.moved = 0; });
   window.addEventListener("mouseup", () => { MAP.dragging = false; });
   cv.addEventListener("mousemove", (e) => {
-    if (state.tab !== 2 || state.chart[2] !== 0) return;
+    if (state.tab !== 2) return;
     if (MAP.dragging) {
       const dx = e.clientX - MAP.lx, dy = e.clientY - MAP.ly;
       MAP.moved += Math.abs(dx) + Math.abs(dy);
@@ -436,14 +502,14 @@ function bindMapEvents() {
     if (hit) showHtmlTooltip(e, stationTooltip(hit)); else hideTooltip();
   });
   cv.addEventListener("click", (e) => {
-    if (state.tab !== 2 || state.chart[2] !== 0 || MAP.moved > 6) return;
+    if (state.tab !== 2 || MAP.moved > 6) return;
     const rect = cv.getBoundingClientRect();
     const hit = nearestHit(e.clientX - rect.left, e.clientY - rect.top, 14);
     MAP.pinned = hit && (!MAP.pinned || MAP.pinned.name !== hit.name) ? hit : null;
     renderTab2();
   });
   cv.addEventListener("wheel", (e) => {
-    if (state.tab !== 2 || state.chart[2] !== 0) return;
+    if (state.tab !== 2) return;
     e.preventDefault();
     const rect = cv.getBoundingClientRect();
     const mx = e.clientX - rect.left, my = e.clientY - rect.top;
@@ -490,43 +556,48 @@ function drawHbars(ctx, w, h, rows, title, sub) {
   });
   legend(ctx, w, LAYERS.map((l) => { return { label: l.label, color: l.color }; }));
 }
+function drawMapBackdrop(ctx, w, h) {
+  const grad = ctx.createRadialGradient(w / 2, h * 0.35, Math.min(w, h) * 0.1, w / 2, h * 0.5, Math.max(w, h) * 0.75);
+  grad.addColorStop(0, "#0F172A"); grad.addColorStop(1, "#040711");
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, w, h);
+}
 function renderTab2() {
   const s = setupCanvas($("canvas2")); const ctx = s.ctx, w = s.w, h = s.h;
+  drawMapBackdrop(ctx, w, h);
+  if (!MAP.fit) focusById("mainland", w, h);
+  drawLand(ctx, w, h);
+  drawAurora(ctx, w, h);
+  drawParallels(ctx, w);
+  if (state.layers.rings) drawCoverageRings(ctx);
+  drawObservatories(ctx);
+  drawStations(ctx);
+  const focus = MAP.pinned || MAP.hover;
+  if (focus) drawFocus(ctx, focus);
+  $("caption2").textContent = filteredStations().length + " stations \u00B7 drag to pan \u00B7 scroll to zoom \u00B7 click to pin";
+}
+function renderTab3() {
+  const s = setupCanvas($("canvas3")); const ctx = s.ctx, w = s.w, h = s.h;
   frame(ctx, w, h);
-  if (state.chart[2] === 0) {
-    if (!MAP.fit) focusById("mainland", w, h);
-    drawLand(ctx, w, h);
-    drawAurora(ctx, w);
-    drawParallels(ctx, w);
-    if (state.layers.rings) drawCoverageRings(ctx);
-    drawObservatories(ctx);
-    drawStations(ctx);
-    const focus = MAP.pinned || MAP.hover;
-    if (focus) drawFocus(ctx, focus);
-    heading(ctx, "Interactive Geodetic Map (Natural Earth 1:10m)", "scroll to zoom, drag to pan, click to pin, hover for RTK rings + IGS baseline");
-    $("caption2").textContent = filteredStations().length + " stations shown. Auroral band 65-71.5 N; observatories OSLS, TROM, NYA2.";
+  if (state.chart[3] === 1) {
+    drawHbars(ctx, w, h,
+      groupRows(["NO-South-Oslo-Ostlandet", "NO-South-West-Vestlandet", "NO-North-Auroral", "NO-Central-Trondelag", "NO-Svalbard-Arctic"], (st) => st.zone),
+      "Kingdom of Norway - 5 Latitudinal Zones", "Oslo-Ostlandet / Vestlandet / North-Auroral / Trondelag / Svalbard");
+    $("caption3").textContent = "Norwegian research-zone status structure.";
     return;
   }
-  if (state.chart[2] === 1) {
-    drawHbars(ctx, w, h, groupRows(["SWE", "NOR", "DNK", "FIN", "ISL"], (s) => s.country_iso),
-      "Sovereign States Breakdown", "SWE / NOR / DNK / FIN / ISL with exact counts and shares");
-    $("caption2").textContent = "Nordic sovereign-state status structure.";
-    return;
-  }
-  drawHbars(ctx, w, h,
-    groupRows(["NO-South-Oslo-Ostlandet", "NO-South-West-Vestlandet", "NO-North-Auroral", "NO-Central-Trondelag", "NO-Svalbard-Arctic"], (s) => s.zone),
-    "Kingdom of Norway - 5 Latitudinal Zones", "Oslo-Ostlandet / Vestlandet / North-Auroral / Trondelag / Svalbard");
-  $("caption2").textContent = "Norwegian research-zone status structure.";
+  drawHbars(ctx, w, h, groupRows(["SWE", "NOR", "DNK", "FIN", "ISL"], (st) => st.country_iso),
+    "Sovereign States Breakdown", "SWE / NOR / DNK / FIN / ISL with exact counts and shares");
+  $("caption3").textContent = "Nordic sovereign-state status structure.";
 }
 
 
 
 const CHIPS = {
   1: [ "Multi-Panel Daily Telemetry", "Daily Net Change & Status Shifts", "Cumulative Station Onboarding" ],
-  2: [ "Interactive 3D Map", "Sovereign Breakdown", "Norway Latitude Zones" ]
+  3: [ "Sovereign States Breakdown", "Norway Latitude Zones" ]
 };
-const REGIONS = [ { id: "all", label: "All Nordic" }, { id: "norway", label: "Norway Only" },
-  { id: "auroral", label: "Auroral Oval >=65N" } ];
+const REGIONS = [ { id: "all", label: "All Nordic" }, { id: "norway", label: "Norway" },
+  { id: "auroral", label: "Auroral Oval (>=65\u00B0N)" } ];
 function chip(label, cls, onClick) {
   const b = document.createElement("button");
   b.className = "chip " + (cls || "");
@@ -566,21 +637,20 @@ function buildChips() {
     });
     box1.appendChild(b);
   });
-  const box2 = $("controls2");
-  const viewGroup = segGroup("View");
-  CHIPS[2].forEach((label, i) => {
-    const b = chip(label, state.chart[2] === i ? "active" : "", () => {
-      state.chart[2] = i;
-      Array.prototype.forEach.call(viewGroup.row.querySelectorAll(".chip"), (x) => x.classList.remove("active"));
+  const box3 = $("controls3");
+  CHIPS[3].forEach((label, i) => {
+    const b = chip(label, state.chart[3] === i ? "active" : "", () => {
+      state.chart[3] = i;
+      Array.prototype.forEach.call(box3.querySelectorAll(".chip"), (x) => x.classList.remove("active"));
       b.classList.add("active");
       render();
     });
-    viewGroup.row.appendChild(b);
+    box3.appendChild(b);
   });
-  box2.appendChild(viewGroup);
-  const regionGroup = segGroup("Region Filter");
+  const box2 = $("controls2");
+  const regionGroup = segGroup("REGION");
   const regionLabels = { all: "All Nordic (" + DATA.totals.nordic + ")",
-    norway: "Norway Only (" + DATA.totals.norway + ")", auroral: "Auroral Oval >=65N" };
+    norway: "Norway (" + DATA.totals.norway + ")", auroral: "Auroral Oval (>=65\u00B0N)" };
   REGIONS.forEach((rg) => {
     const b = chip(regionLabels[rg.id] || rg.label, state.region === rg.id ? "active" : "", () => {
       state.region = rg.id;
@@ -591,7 +661,7 @@ function buildChips() {
     regionGroup.row.appendChild(b);
   });
   box2.appendChild(regionGroup);
-  const cameraGroup = segGroup("Camera");
+  const cameraGroup = segGroup("CAMERA");
   FOCUS.forEach((f) => {
     cameraGroup.row.appendChild(chip(f.label, "", () => {
       const s = setupCanvas($("canvas2"));
@@ -599,15 +669,15 @@ function buildChips() {
       renderTab2();
     }));
   });
-  cameraGroup.row.appendChild(chip("Reset Zoom", "", () => {
+  cameraGroup.row.appendChild(chip("Reset", "", () => {
     const s = setupCanvas($("canvas2"));
     focusById("mainland", s.w, s.h);
     renderTab2();
   }));
   box2.appendChild(cameraGroup);
-  const layerGroup = segGroup("Map Layers", "seg-layer");
-  layerGroup.row.appendChild(toggleLayerChip("RTK Coverage Rings", "rings"));
-  layerGroup.row.appendChild(toggleLayerChip("IGS Baseline Vectors", "vectors"));
+  const layerGroup = segGroup("LAYERS", "seg-layer");
+  layerGroup.row.appendChild(toggleLayerChip("RTK Coverage Glow", "rings"));
+  layerGroup.row.appendChild(toggleLayerChip("IGS Vectors", "vectors"));
   box2.appendChild(layerGroup);
 }
 function buildKpi() {
@@ -626,12 +696,14 @@ function buildKpi() {
 function render() {
   $("panel1").classList.toggle("hidden", state.tab !== 1);
   $("panel2").classList.toggle("hidden", state.tab !== 2);
+  $("panel3").classList.toggle("hidden", state.tab !== 3);
   Array.prototype.forEach.call(document.querySelectorAll(".tab-btn"), (b) => {
     b.classList.toggle("active", Number(b.getAttribute("data-tab")) === state.tab);
   });
   hideTooltip();
   if (state.tab === 1) renderTab1();
-  else renderTab2();
+  else if (state.tab === 2) renderTab2();
+  else renderTab3();
 }
 function bindTabs() {
   Array.prototype.forEach.call(document.querySelectorAll(".tab-btn"), (b) => {
