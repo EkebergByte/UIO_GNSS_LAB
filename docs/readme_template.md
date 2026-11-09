@@ -109,31 +109,19 @@ starts the dashboard on a free port between 8085 and 8095 and opens it in the br
 
 ```
 UIO_GNSS_LAB/
-├── .editorconfig · .gitattributes · .gitignore
-├── .github/workflows/ci.yml
-├── Cargo.toml · Cargo.lock
-├── README.md · DATA_SOURCES.md · LICENSE
-├── src/                     Rust engine
-│   ├── main.rs              CLI entry point
-│   ├── types.rs             constants, status enum, data records
-│   ├── error.rs             named error variants
-│   ├── geo.rs               Haversine, point-in-polygon, coastal buffer, zones
-│   ├── classify_engine.rs   classification pipeline and CSV writer
-│   ├── payload.rs           cached dashboard JSON payload builder
-│   ├── server.rs            local HTTP server
-│   └── dashboard.html       three-tab interactive dashboard
-├── data/
-│   ├── nordic_boundaries_10m.geojson
-│   ├── nordic_geodnet_stations.csv
-│   └── norway_only_stations.csv
-├── docs/
-│   ├── NORDIC_NETWORK_REPORT.md
-│   ├── readme_template.md
-│   └── report_template.md
-└── assets/
-    ├── 01_multi_panel_telemetry.png
-    ├── 02_cumulative_onboarding.png
-    └── 03_geodetic_map_3d.png
+├── Cargo.toml
+├── src/
+│ ├── main.rs CLI entry point
+│ ├── types.rs domain types and geodetic constants
+│ ├── error.rs typed error definitions
+│ ├── geo.rs Haversine geodesy and point-in-polygon engine
+│ ├── classify_engine.rs Nordic classification and CSV writer
+│ ├── payload.rs telemetry aggregation and JSON payload builder
+│ ├── server.rs local async HTTP server
+│ └── dashboard.html interactive 60 FPS geodetic canvas
+├── data/ boundaries and generated CSV datasets
+├── docs/ analytical reports and documentation
+└── assets/ dashboard visual assets
 ```
 
 ---
