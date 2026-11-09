@@ -1,0 +1,17 @@
+[package]
+name = "uio-gnss-lab"
+version = "0.2.0"
+edition = "2021"
+rust-version = "1.80"
+description = "High-latitude GNSS infrastructure and ionospheric quality-control telemetry"
+license = "MIT"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2"
+chrono = { version = "0.4", features = ["serde"] }
+
+[profile.release]
+opt-level = 3
+lto = true
