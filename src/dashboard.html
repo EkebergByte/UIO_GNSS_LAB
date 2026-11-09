@@ -34,9 +34,10 @@ main { padding: 16px 20px 28px 20px; }
 .seg-row .chip.active { box-shadow: 0 0 0 1px #66C2A5 inset, 0 0 12px rgba(102,194,165,0.5); }
 .seg-layer .chip.active { background: #2AB7CA; border-color: #2AB7CA; color: #05161B;
   box-shadow: 0 0 0 1px #2AB7CA inset, 0 0 14px rgba(42,183,202,0.6); }
-.canvas-wrap { background: #141A23; border: 1px solid #2D3748; border-radius: 10px; padding: 8px; width: 100%; }
+.canvas-wrap { position: relative; background: #141A23; border: 1px solid #2D3748; border-radius: 10px; padding: 8px; width: 100%; }
 canvas { display: block; width: 100%; height: 64vh; min-height: 470px; cursor: crosshair; }
 #canvas2 { height: calc(100vh - 190px); min-height: 560px; }
+#canvasAurora { position: absolute; inset: 8px; width: auto; height: auto; pointer-events: none; cursor: default; }
 .caption { color: #94A3B8; font-size: 14px; margin-top: 12px; line-height: 1.55; }
 .hidden { display: none; }
 #tooltip { position: fixed; pointer-events: none; background: #0B111A; border: 1px solid rgba(56, 189, 248, 0.3);
@@ -64,7 +65,7 @@ canvas { display: block; width: 100%; height: 64vh; min-height: 470px; cursor: c
   </section>
   <section id="panel2" class="tab-panel hidden">
     <div class="seg-toolbar" id="controls2"></div>
-    <div class="canvas-wrap"><canvas id="canvas2"></canvas></div>
+    <div class="canvas-wrap" id="wrap2"><canvas id="canvas2"></canvas><canvas id="canvasAurora"></canvas></div>
     <div class="caption" id="caption2"></div>
   </section>
   <section id="panel3" class="tab-panel hidden">
@@ -302,33 +303,143 @@ function auroraGeo(phiRad, theta) {
   const lonGeo = (AURORA_POLE_LON + Math.atan2(y, x)) * 180 / Math.PI;
   return [lonGeo, latGeo];
 }
-function drawStarkovAurora(ctx) {
-  const samples = 64;
-  const poleward = [], equator = [];
+const AURORA_BUF_SCALE = 0.25;
+const AURORA_RAYS = 40;
+const AURORA_REDUCED = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+const AURORA_HARMONICS = [ { amp: 0.9, k: 2.1, w: 0.05, ph: 0.0 },
+  { amp: 0.5, k: 4.3, w: 0.083, ph: 1.7 }, { amp: 0.28, k: 7.7, w: 0.121, ph: 3.3 } ];
+const AURORA_RAY_COLORS = [ "16, 185, 129", "34, 211, 238", "168, 85, 247" ];
+const auroraBuf = document.createElement("canvas");
+let auroraRAF = null;
+let auroraStart = 0;
+let auroraSeed = [];
+function initAurora() {
+  auroraSeed = [];
+  for (let i = 0; i < AURORA_RAYS; i++) {
+    auroraSeed.push({ f: i / AURORA_RAYS, w: 8 + 14 * Math.random(), h: 26 + 46 * Math.random(),
+      ph: Math.random() * Math.PI * 2, sp: 0.4 + 0.9 * Math.random(), c: i % 3 });
+  }
+}
+function auroraGuideScreens() {
+  const samples = 48;
+  const pole = [], eq = [];
   let prevLon = null, offset = 0;
   for (let i = 0; i <= samples; i++) {
     const theta = 2 * Math.PI * i / samples;
-    const phiEqRad = (69.5 - 4.5 * Math.cos(theta) - 1.2 * AURORA_KP) * Math.PI / 180;
-    const phiPoleRad = (75.0 - 3.5 * Math.cos(theta) - 0.4 * AURORA_KP) * Math.PI / 180;
-    const eq = auroraGeo(phiEqRad, theta);
-    const po = auroraGeo(phiPoleRad, theta);
-    if (prevLon !== null) {
-      const d = eq[0] - prevLon;
-      if (d > 180) offset -= 360; else if (d < -180) offset += 360;
-    }
-    prevLon = eq[0];
-    poleward.push(toScreen(po[0] + offset, po[1]));
-    equator.push(toScreen(eq[0] + offset, eq[1]));
+    const phiEq = (69.5 - 4.5 * Math.cos(theta) - 1.2 * AURORA_KP) * Math.PI / 180;
+    const phiPole = (75.0 - 3.5 * Math.cos(theta) - 0.4 * AURORA_KP) * Math.PI / 180;
+    const e = auroraGeo(phiEq, theta);
+    const p = auroraGeo(phiPole, theta);
+    if (prevLon !== null) { const d = e[0] - prevLon; if (d > 180) offset -= 360; else if (d < -180) offset += 360; }
+    prevLon = e[0];
+    pole.push(toScreen(p[0] + offset, p[1]));
+    eq.push(toScreen(e[0] + offset, e[1]));
   }
-  const pts = poleward.concat(equator.slice().reverse());
-  ctx.beginPath();
-  pts.forEach((s, i) => { if (i === 0) ctx.moveTo(s[0], s[1]); else ctx.lineTo(s[0], s[1]); });
-  ctx.closePath();
-  ctx.fillStyle = "rgba(16, 185, 129, 0.22)";
-  ctx.fill();
-  ctx.strokeStyle = "rgba(52, 211, 153, 0.65)";
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
+  return { pole: pole, eq: eq, n: samples + 1 };
+}
+function auroraWave(s, t) {
+  let v = 0;
+  for (const h of AURORA_HARMONICS) v += h.amp * Math.sin(h.k * s * Math.PI + h.w * t + h.ph);
+  return v;
+}
+function drawAuroraBuffer(w, h, t) {
+  const sc = AURORA_BUF_SCALE;
+  const bw = Math.max(1, Math.round(w * sc)), bh = Math.max(1, Math.round(h * sc));
+  if (auroraBuf.width !== bw || auroraBuf.height !== bh) { auroraBuf.width = bw; auroraBuf.height = bh; }
+  const bctx = auroraBuf.getContext("2d");
+  bctx.setTransform(sc, 0, 0, sc, 0, 0);
+  bctx.clearRect(0, 0, w, h);
+  bctx.globalCompositeOperation = "lighter";
+  const g = auroraGuideScreens();
+  const n = g.n;
+  const pixPerDeg = MAP.scale;
+  const cx = new Array(n), cy = new Array(n), hu = new Array(n);
+  let minX = 1e9, maxX = -1e9;
+  for (let i = 0; i < n; i++) {
+    const s = i / (n - 1);
+    const e = g.eq[i], p = g.pole[i];
+    const off = auroraWave(s, t) * pixPerDeg;
+    cx[i] = (e[0] + p[0]) / 2;
+    cy[i] = (e[1] + p[1]) / 2 + off;
+    hu[i] = Math.abs(e[1] - p[1]) * 0.5 + 8;
+    if (cx[i] < minX) minX = cx[i];
+    if (cx[i] > maxX) maxX = cx[i];
+  }
+  const hgrad = bctx.createLinearGradient(minX, 0, maxX, 0);
+  hgrad.addColorStop(0.0, "rgba(16, 185, 129, 0.0)");
+  hgrad.addColorStop(0.1, "rgba(16, 185, 129, 0.16)");
+  hgrad.addColorStop(0.5, "rgba(52, 211, 153, 0.34)");
+  hgrad.addColorStop(0.9, "rgba(34, 211, 238, 0.16)");
+  hgrad.addColorStop(1.0, "rgba(34, 211, 238, 0.0)");
+  const ribOff = [0, 0.5, 1.1];
+  const ribAlpha = [0.5, 0.28, 0.16];
+  const ribWidth = [1.0, 0.26, 0.16];
+  for (let r = 0; r < 3; r++) {
+    bctx.beginPath();
+    for (let i = 0; i < n; i++) { const yy = cy[i] + ribOff[r]; if (i === 0) bctx.moveTo(cx[i], yy); else bctx.lineTo(cx[i], yy); }
+    for (let i = n - 1; i >= 0; i--) { bctx.lineTo(cx[i], cy[i] + ribOff[r] - hu[i] * ribWidth[r]); }
+    bctx.closePath();
+    bctx.globalAlpha = ribAlpha[r];
+    bctx.fillStyle = hgrad;
+    bctx.fill();
+  }
+  for (const rd of auroraSeed) {
+    const i = Math.min(n - 1, Math.max(0, Math.round(rd.f * (n - 1))));
+    const bx = cx[i], by = cy[i];
+    const pulse = 0.55 + 0.45 * Math.sin(t * rd.sp + rd.ph);
+    const top = by - hu[i] - rd.h - 10 * pulse;
+    const col = AURORA_RAY_COLORS[rd.c];
+    const grad = bctx.createLinearGradient(bx, by, bx, top);
+    grad.addColorStop(0.0, "rgba(" + col + ", 0.0)");
+    grad.addColorStop(0.45, "rgba(" + col + ", 0.22)");
+    grad.addColorStop(1.0, "rgba(" + col + ", 0.0)");
+    bctx.globalAlpha = 0.5 * pulse;
+    bctx.fillStyle = grad;
+    bctx.fillRect(bx - rd.w / 2, top, rd.w, by - top);
+  }
+  bctx.globalAlpha = 1;
+}
+function compositeAurora(ctx, w, h) {
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  const hasFilter = typeof ctx.filter === "string";
+  if (hasFilter) ctx.filter = "blur(16px)";
+  ctx.globalAlpha = 0.55;
+  ctx.drawImage(auroraBuf, 0, 0, w, h);
+  if (hasFilter) ctx.filter = "blur(5px)";
+  ctx.globalAlpha = 0.5;
+  ctx.drawImage(auroraBuf, 0, 0, w, h);
+  if (hasFilter) ctx.filter = "none";
+  ctx.restore();
+}
+function fitCanvas(canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const W = Math.max(1, Math.round(rect.width * dpr));
+  const H = Math.max(1, Math.round(rect.height * dpr));
+  if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, rect.width, rect.height);
+  return { ctx: ctx, w: rect.width, h: rect.height };
+}
+function auroraTick() {
+  auroraRAF = null;
+  if (!DATA || state.tab !== 2 || document.hidden) return;
+  const t = (performance.now() - auroraStart) / 1000;
+  const s = fitCanvas($("canvasAurora"));
+  drawAuroraBuffer(s.w, s.h, t);
+  compositeAurora(s.ctx, s.w, s.h);
+  if (!AURORA_REDUCED) auroraRAF = requestAnimationFrame(auroraTick);
+}
+function startAurora() {
+  if (auroraRAF !== null) return;
+  if (!DATA || state.tab !== 2 || document.hidden) return;
+  auroraStart = performance.now();
+  auroraRAF = requestAnimationFrame(auroraTick);
+}
+function stopAurora() {
+  if (auroraRAF !== null) { cancelAnimationFrame(auroraRAF); auroraRAF = null; }
 }
 function drawParallels(ctx, w) {
   const marks = [ [60, C.muted, "60 N"], [65, C.active, "65 N AURORAL OVAL"], [70, C.muted, "70 N"], [74, C.offline, "74 N SVALBARD"] ];
@@ -550,7 +661,6 @@ function renderTab2() {
   drawMapBackdrop(ctx, w, h);
   if (!MAP.fit) focusById("mainland", w, h);
   drawLand(ctx, w, h);
-  drawStarkovAurora(ctx);
   drawParallels(ctx, w);
   if (state.layers.rings) drawCoverageRings(ctx);
   drawObservatories(ctx);
@@ -685,9 +795,9 @@ function render() {
     b.classList.toggle("active", Number(b.getAttribute("data-tab")) === state.tab);
   });
   hideTooltip();
-  if (state.tab === 1) renderTab1();
-  else if (state.tab === 2) renderTab2();
-  else renderTab3();
+  if (state.tab === 1) { stopAurora(); renderTab1(); }
+  else if (state.tab === 2) { renderTab2(); startAurora(); }
+  else { stopAurora(); renderTab3(); }
 }
 function bindTabs() {
   Array.prototype.forEach.call(document.querySelectorAll(".tab-btn"), (b) => {
@@ -714,12 +824,17 @@ function bindTab1Events() {
   cv.addEventListener("mouseleave", () => { T1.hover = -1; hideTooltip(); if (state.tab === 1) renderTab1(); });
 }
 function init() {
+  initAurora();
   buildKpi();
   buildChips();
   bindTabs();
   bindMapEvents();
   bindTab1Events();
   window.addEventListener("resize", () => { render(); });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stopAurora();
+    else if (state.tab === 2) startAurora();
+  });
   render();
 }
 fetch("/api/telemetry").then((r) => r.json()).then((d) => { DATA = d; init(); }).catch((err) => {
