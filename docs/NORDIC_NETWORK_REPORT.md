@@ -2,7 +2,7 @@
 
 **Programme:** UIO_GNSS_LAB — High-Latitude GNSS Infrastructure & Ionospheric Quality Control
 **Affiliation:** University of Oslo — Mathematics: Data, Modelling and Computations
-**Report generated:** 2026-11-07 21:40:57 UTC
+**Report generated:** 2026-11-09 14:01:05 UTC
 **Telemetry snapshot source:** local-cache
 **Reference sources:** GEODNET public API documentation; Natural Earth 1:10m Admin-0 boundaries; IGS/EUREF station registry
 
@@ -13,7 +13,7 @@
 1. **Scope.** This report establishes an independent, reproducible baseline of GEODNET reference-station coverage and quality-control behaviour across the high-latitude Nordic domain, combining the public coverage API with authoritative cartographic boundaries (Natural Earth 1:10m) and the published quality-control contracts of the GEODNET network.
 2. **QC contract.** GEODNET's data-quality gate is fully documented: a station's hourly data is only usable when **epoch completeness ≥ 90 %** and the **multipath metric MP12 ≤ 0.7 m**. The PPK download endpoint returns business **error code 310 = "Station QC quality is poor. Download failed."** when that gate is not met.
 3. **Processing toolchain.** RTCM 3.x to RINEX conversion follows the documented **RTKLIB** (`convbin`) route distributed as `geodnet/rtklib_lte`, which enables standard post-processed kinematic (PPK) workflows on the retrieved observations.
-4. **Live network.** On 2026-11-06 14:09:31 UTC the public coverage endpoint reported **19566** global stations. Precise point-in-multipolygon classification (Natural Earth 1:10m Admin-0, with a 20 km coastal-buffer fallback) resolved **302** stations across the five Nordic sovereign states, of which **92** lie in the Kingdom of Norway (including **2** in Svalbard above 74° N).
+4. **Live network.** On 2026-11-09 14:00:10 UTC the public coverage endpoint reported **19548** global stations. Precise point-in-multipolygon classification (Natural Earth 1:10m Admin-0, with a 20 km coastal-buffer fallback) resolved **300** stations across the five Nordic sovereign states, of which **89** lie in the Kingdom of Norway (including **2** in Svalbard above 74° N).
 
 ---
 
@@ -176,17 +176,17 @@ Interpretation: `-r rtcm3` forces the input format, `-tr` supplies the start tim
 
 ## 3. Live GEODNET network statistics
 
-**Snapshot:** 2026-11-06 14:09:31 UTC · **source:** local-cache · **boundaries:** local-cache
+**Snapshot:** 2026-11-09 14:00:10 UTC · **source:** local-cache · **boundaries:** local-cache
 
 ### 3.1 Global totals by status
 
-**Total global stations: 19566**
+**Total global stations: 19548**
 
 | Status | Stations | Share |
 | :--- | ---: | ---: |
-| ACTIVE | 17223 | 88.0% |
-| OFFLINE | 671 | 3.4% |
-| ONLINE | 1672 | 8.5% |
+| ACTIVE | 17163 | 87.8% |
+| OFFLINE | 669 | 3.4% |
+| ONLINE | 1716 | 8.8% |
 
 ### 3.2 Nordic classification by sovereign state (Natural Earth 1:10m, point-in-multipolygon)
 
@@ -194,34 +194,34 @@ Each station is tested against the full Admin-0 polygon set of its candidate reg
 
 | ISO | Country | Stations | Share |
 | :--- | :--- | ---: | ---: |
-| NOR | Norway | 92 | 30.5% |
-| SWE | Sweden | 145 | 48.0% |
-| FIN | Finland | 23 | 7.6% |
+| NOR | Norway | 89 | 29.7% |
+| SWE | Sweden | 146 | 48.7% |
+| FIN | Finland | 23 | 7.7% |
 | DNK | Denmark | 34 | 11.3% |
-| ISL | Iceland | 8 | 2.6% |
+| ISL | Iceland | 8 | 2.7% |
 
-**Nordic total (NOR + SWE + FIN + DNK + ISL): 302** — of which **26** were resolved via the coastal buffer.
+**Nordic total (NOR + SWE + FIN + DNK + ISL): 300** — of which **26** were resolved via the coastal buffer.
 
 ### 3.3 Kingdom of Norway — research zones
 
-**Norway total: 92**
+**Norway total: 89**
 
 | Zone | Stations |
 | :--- | ---: |
 | NO-Central-Trondelag | 10 |
 | NO-North-Auroral | 15 |
-| NO-South-Oslo-Ostlandet | 45 |
-| NO-South-West-Vestlandet | 20 |
+| NO-South-Oslo-Ostlandet | 43 |
+| NO-South-West-Vestlandet | 19 |
 | NO-Svalbard-Arctic | 2 |
 
 ### 3.4 Hardware class split (Nordic region)
 
 | Station class | Stations | Share |
 | :--- | ---: | ---: |
-| GEODNET_MINER | 293 | 97.0% |
+| GEODNET_MINER | 291 | 97.0% |
 | PUBLIC_IGS_EUREF | 9 | 3.0% |
 
-- Nordic `GEODNET_MINER`: **293**
+- Nordic `GEODNET_MINER`: **291**
 - Nordic `PUBLIC_IGS_EUREF`: **9**
 
 ---
@@ -239,7 +239,7 @@ Every station whose name is not a masked miner UID (`****…`) is surfaced as an
 | ISL | 658 | HOFN | ACTIVE | IS-Iceland | 64.2670 | -15.1980 |
 | ISL | 657 | REYK | ACTIVE | IS-Iceland | 64.1390 | -21.9550 |
 | NOR | 473 | G022 | ACTIVE | NO-North-Auroral | 68.7860 | 16.5380 |
-| NOR | 3042 | NYA2 | ACTIVE | NO-Svalbard-Arctic | 78.9300 | 11.8590 |
+| NOR | 3042 | NYA2 | ONLINE | NO-Svalbard-Arctic | 78.9300 | 11.8590 |
 | SWE | 845 | KIR8 | ACTIVE | SE-Sweden | 67.8780 | 21.0600 |
 | SWE | 843 | MAR7 | ACTIVE | SE-Sweden | 60.5950 | 17.2580 |
 | SWE | 3040 | ONS1 | ACTIVE | SE-Sweden | 57.3950 | 11.9250 |
@@ -253,14 +253,14 @@ Distances are geodesic (Haversine, mean Earth radius 6371.0088 km); the table is
 | 1 | 1922 | ****AE3D5 | ONLINE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.8290 | 10.4440 | 11.11 |
 | 2 | 3202 | ****3A786 | ONLINE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.7510 | 10.0460 | 18.13 |
 | 3 | 79 | ****895F9 | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.7520 | 10.0310 | 18.98 |
-| 4 | 3748 | ****F3E3D | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.9400 | 10.5850 | 25.65 |
+| 4 | 3748 | ****F3E3D | ONLINE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.9400 | 10.5850 | 25.65 |
 | 5 | 492 | ****B7DF4 | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.4950 | 10.2510 | 27.66 |
 | 6 | 70 | ****0C6D9 | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.7690 | 9.8510 | 29.20 |
 | 7 | 973 | ****380AD | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.9490 | 10.6870 | 29.58 |
 | 8 | 71 | ****33B71 | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.9120 | 9.9500 | 30.45 |
 | 9 | 69 | ****9ACD9 | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.8920 | 9.9150 | 30.67 |
 | 10 | 3010 | ****7369D | ONLINE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.3970 | 10.4660 | 38.16 |
-| 11 | 3567 | ****30824 | ONLINE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.5550 | 11.0750 | 44.55 |
+| 11 | 3567 | ****30824 | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.5550 | 11.0750 | 44.55 |
 | 12 | 3634 | ****29E0D | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.5550 | 11.0750 | 44.55 |
 | 13 | 1260 | ****6E8CC | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.9490 | 11.1170 | 48.03 |
 | 14 | 109 | ****CE955 | ACTIVE | GEODNET_MINER | NO-South-Oslo-Ostlandet | 59.6410 | 11.2350 | 49.79 |
@@ -272,7 +272,7 @@ Sorted by descending latitude; `Dist TROM` is the geodesic distance to the IGS/E
 
 | Rank | Station ID | Name | Status | Class | Zone | Lat | Lng | Dist TROM km |
 | ---: | ---: | :--- | :--- | :--- | :--- | ---: | ---: | ---: |
-| 1 | 3042 | NYA2 | ACTIVE | PUBLIC_IGS_EUREF | NO-Svalbard-Arctic | 78.9300 | 11.8590 | 1050.42 |
+| 1 | 3042 | NYA2 | ONLINE | PUBLIC_IGS_EUREF | NO-Svalbard-Arctic | 78.9300 | 11.8590 | 1050.42 |
 | 2 | 2699 | ****1CC2E | ONLINE | GEODNET_MINER | NO-Svalbard-Arctic | 78.2510 | 15.4370 | 960.60 |
 | 3 | 921 | ****8FA45 | ACTIVE | GEODNET_MINER | NO-North-Auroral | 70.6850 | 23.7060 | 212.60 |
 | 4 | 658 | ****51365 | OFFLINE | GEODNET_MINER | NO-North-Auroral | 70.6100 | 26.0290 | 287.61 |

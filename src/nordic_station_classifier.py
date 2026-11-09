@@ -42,6 +42,7 @@ REPORT_TEMPLATE = os.path.join(BASE_DIR, "docs", "report_template.md")
 REPORT_FILE = os.path.join(BASE_DIR, "docs", "NORDIC_NETWORK_REPORT.md")
 README_TEMPLATE = os.path.join(BASE_DIR, "docs", "readme_template.md")
 README_FILE = os.path.join(BASE_DIR, "README.md")
+DAILY_SUMMARY_FILE = os.path.join(BASE_DIR, "repos", "rtk", "data", "daily_summary.json")
 
 CANDIDATE_MIN_LAT = 53.0
 CANDIDATE_MAX_LAT = 82.0
@@ -372,6 +373,26 @@ def snapshot_fetched_at() -> str:
     if stamp.tzinfo is None:
         stamp = stamp.replace(tzinfo=timezone.utc)
     return stamp.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+
+def archive_stats() -> tuple:
+    if not (os.path.isfile(DAILY_SUMMARY_FILE) and os.path.getsize(DAILY_SUMMARY_FILE) > 0):
+        return 0, 0
+    with open(DAILY_SUMMARY_FILE, "r", encoding="utf-8") as handle:
+        daily = json.load(handle)
+    if not isinstance(daily, dict):
+        return 0, 0
+    keys = sorted(daily.keys())
+    cohort = 0
+    for key in keys:
+        record = daily.get(key)
+        if not isinstance(record, dict):
+            continue
+        for field in ("newActive", "newOnline"):
+            value = record.get(field)
+            if isinstance(value, (int, float)) and math.isfinite(float(value)):
+                cohort += int(value)
+    return len(keys), cohort
 
 
 def load_or_fetch_ne_raw() -> tuple:
@@ -725,6 +746,8 @@ def main() -> int:
     norway_total = len(norway_rows)
     svalbard_total = zone_counts.get("NO-Svalbard-Arctic", 0)
 
+    archive_days, cohort_new = archive_stats()
+
     context = {
         "GENERATED_AT": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
         "SNAPSHOT_FETCHED_AT": snapshot_fetched_at(),
@@ -744,6 +767,8 @@ def main() -> int:
         "PUBLIC_LIST_TABLE": public_list_markdown(public_rows),
         "SOUTHERN_15_TABLE": southern_markdown(norway_rows, 15),
         "NORTHERN_15_TABLE": northern_markdown(norway_rows, 15),
+        "ARCHIVE_DAYS": str(archive_days),
+        "COHORT_NEW": str(cohort_new),
     }
     report = render_template(context, REPORT_TEMPLATE)
     if report:

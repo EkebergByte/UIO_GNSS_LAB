@@ -19,7 +19,7 @@ standard library** — no external packages are required.
     </td>
     <td align="center" width="33%">
       <a href="assets/02_cumulative_onboarding.png"><img src="assets/02_cumulative_onboarding.png" width="360" alt="Cumulative Station Onboarding"/></a>
-      <br/><sub>Tab 1 — Cumulative Station Onboarding (1,953 new stations).</sub>
+      <br/><sub>Tab 1 — Cumulative Station Onboarding (2023 new stations).</sub>
     </td>
     <td align="center" width="33%">
       <a href="assets/03_geodetic_map_3d.png"><img src="assets/03_geodetic_map_3d.png" width="360" alt="Interactive 3D-styled geodetic map"/></a>
@@ -45,8 +45,8 @@ Two working programs and three research datasets.
 
 **Datasets**
 
-- `data/nordic_geodnet_stations.csv` — all Nordic stations (302).
-- `data/norway_only_stations.csv` — Norwegian stations only (92), sorted by distance to `OSLS`.
+- `data/nordic_geodnet_stations.csv` — all Nordic stations (300).
+- `data/norway_only_stations.csv` — Norwegian stations only (89), sorted by distance to `OSLS`.
 - `data/nordic_boundaries_10m.geojson` — Natural Earth 1:10m polygons for the five Nordic states.
 
 **What each chart shows**
@@ -57,16 +57,16 @@ Two working programs and three research datasets.
   dB-Hz) and `OFFLINE` stations, each on its own Y axis. This makes it easy to spot days of
   network-wide quality degradation, when stations move from `ACTIVE` to `ONLINE`.
 - *Daily Net Change & Status Shifts:* net day-over-day change in the number of active stations.
-- *Cumulative Station Onboarding:* cumulative curve of new stations (1,953 new stations over the
-  72-day archive window).
+- *Cumulative Station Onboarding:* cumulative curve of new stations (2023 new stations over
+  the 75-day archive window).
 
 *Tab 2 — Nordic & Norway Spatial Map*
 - *Interactive 3D-Styled Geodetic Map (Natural Earth 1:10m):* interactive map of Scandinavia,
   Norway and Svalbard with the auroral-oval band (`65°N Auroral Oval`), RTK coverage rings
   (`15 km / 30 km`), Haversine baseline vectors to three official IGS/EUREF observatories (`OSLS`
   in Oslo, `TROM` in Tromsø, `NYA2` on Svalbard), and region filtering that keeps the current zoom.
-- *Sovereign States & Norwegian Latitudinal Zones:* the 302 stations across the five Nordic
-  countries (`SWE`, `NOR`, `DNK`, `FIN`, `ISL`) and the 92 Norwegian stations split into five
+- *Sovereign States & Norwegian Latitudinal Zones:* the 300 stations across the five Nordic
+  countries (`SWE`, `NOR`, `DNK`, `FIN`, `ISL`) and the 89 Norwegian stations split into five
   latitude zones and two hardware classes (`GEODNET_MINER` vs `PUBLIC_IGS_EUREF`).
 
 *Tab 3 — Station Reliability & Data Explorer*
@@ -76,20 +76,20 @@ Two working programs and three research datasets.
 
 ---
 
-## Live Network Dataset (Snapshot: 2026-11-06 14:09:31 UTC)
+## Live Network Dataset (Snapshot: 2026-11-09 14:00:10 UTC)
 
-Global stations observed: **19566** — Nordic stations: **302** — Norway:
-**92**.
+Global stations observed: **19548** — Nordic stations: **300** — Norway:
+**89**.
 
 ### Nordic stations by sovereign state
 
 | ISO | Country | Stations | Share |
 | :--- | :--- | ---: | ---: |
-| NOR | Norway | 92 | 30.5% |
-| SWE | Sweden | 145 | 48.0% |
-| FIN | Finland | 23 | 7.6% |
+| NOR | Norway | 89 | 29.7% |
+| SWE | Sweden | 146 | 48.7% |
+| FIN | Finland | 23 | 7.7% |
 | DNK | Denmark | 34 | 11.3% |
-| ISL | Iceland | 8 | 2.6% |
+| ISL | Iceland | 8 | 2.7% |
 
 ### Kingdom of Norway — research zones
 
@@ -97,15 +97,15 @@ Global stations observed: **19566** — Nordic stations: **302** — Norway:
 | :--- | ---: |
 | NO-Central-Trondelag | 10 |
 | NO-North-Auroral | 15 |
-| NO-South-Oslo-Ostlandet | 45 |
-| NO-South-West-Vestlandet | 20 |
+| NO-South-Oslo-Ostlandet | 43 |
+| NO-South-West-Vestlandet | 19 |
 | NO-Svalbard-Arctic | 2 |
 
 ### Hardware class (Nordic region)
 
 | Class | Stations |
 | :--- | ---: |
-| `GEODNET_MINER` | 293 |
+| `GEODNET_MINER` | 291 |
 | `PUBLIC_IGS_EUREF` | 9 |
 
 ---
