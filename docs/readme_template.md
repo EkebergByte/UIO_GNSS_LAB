@@ -1,7 +1,11 @@
 # High-Latitude GNSS Infrastructure & Quality-Control Telemetry
 
 [![CI](https://github.com/EkebergByte/UIO_GNSS_LAB/actions/workflows/ci.yml/badge.svg)](https://github.com/EkebergByte/UIO_GNSS_LAB/actions/workflows/ci.yml)
-[![Rust 1.80+](https://img.shields.io/badge/rust-1.80%2B-orange)](https://www.rust-lang.org/)
+[![Rust 1.80+](https://img.shields.io/badge/Rust-1.80%2B-orange?logo=rust)](https://www.rust-lang.org/)
+[![UiO Data Science](https://img.shields.io/badge/UiO-Mathematics%20%26%20Data-0B4F6C)](https://www.uio.no/)
+[![Standard RINEX 3.04](https://img.shields.io/badge/Standard-RINEX%203.04-blue)](https://igs.org/)
+[![Datum ITRF2020](https://img.shields.io/badge/Datum-ITRF2020%20%2F%20ETRS89-10b981)](https://www.epncb.oma.be/)
+[![Engine 60 FPS](https://img.shields.io/badge/Engine-60%20FPS%20Canvas-00F0FF)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 An independent GNSS data-science project at the **University of Oslo** (Mathematics: Data,
@@ -32,17 +36,15 @@ runs entirely from local data — no external services are required at runtime.
 
 ## What GEODNET Is
 
-GEODNET (Global Earth Observation Decentralized Network) is a **global reference-station
-infrastructure** that supplies centimetre-level RTK corrections and post-processed GNSS data to
-industry. It is not a hobbyist network: surveying firms, machine-control fleets, autonomous
-platforms and geodetic services depend on it as production infrastructure, so a single degraded or
-offline reference station degrades an entire service region.
+GEODNET (Global Earth Observation Decentralized Network) is a global reference-station network that
+distributes RTK corrections and post-processed GNSS data. Its stations serve surveying,
+machine-control, autonomous-platform and geodetic applications, and the operational status of each
+station determines the corrections available within its coverage area.
 
-Every station is therefore continuously scored against a hard quality gate — **epoch completeness
-≥ 90 %** and **multipath MP12 ≤ 0.7 m** — and the network is only as strong as its weakest node.
-This project takes that industrial framing seriously: it treats station availability, status
-transitions and geometric coverage as first-class telemetry, and asks what the high-latitude
-(Nordic) sub-network actually looks like when measured independently.
+Station data is subject to two quality thresholds — **epoch completeness ≥ 90 %** and **multipath
+MP12 ≤ 0.7 m** — and stations that fail the gate are held out of the RTK-ready set. This work
+reports the station classification, status transitions and geometric coverage of the Nordic
+sub-network, derived from the public coverage feed.
 
 ## What This Project Does
 
