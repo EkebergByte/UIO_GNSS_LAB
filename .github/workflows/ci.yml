@@ -9,25 +9,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
       - uses: dtolnay/rust-toolchain@stable
-      - name: Python purity check
-        run: python check_purity.py
       - name: Rust purity check
         run: cargo run -- --check-purity
       - name: Cargo check
         run: cargo check --message-format=short
       - name: Cargo test
         run: cargo test
-      - name: Legacy Python tests
-        run: python -m unittest discover -s scripts/python_legacy/tests -t scripts/python_legacy/tests -v
-      - name: CSV parity
+      - name: Data parity
         run: |
           if [ -f data/global_stations_snapshot.json ]; then
             cargo run -- --classify
             git diff --exit-code -- data/nordic_geodnet_stations.csv data/norway_only_stations.csv
           else
-            echo "snapshot cache absent, skipping CSV parity"
+            echo "snapshot cache absent, skipping data parity"
           fi
