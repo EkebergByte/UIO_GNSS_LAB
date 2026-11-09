@@ -302,16 +302,18 @@ function drawLand(ctx, w, h) {
   ctx.restore();
 }
 
-const AURORA_KP = 2.5;
-const AURORA_LON0 = 18;
-const AURORA_LNG_SCALE = 4;
+const AURORA_LON_MIN = 4.0;
+const AURORA_LON_MAX = 34.0;
+const AURORA_LAT_CENTER = 69.5;
+const AURORA_LAT_HALF = 2.0;
 const AURORA_BUF_SCALE = 0.25;
-const AURORA_RAYS = 44;
+const AURORA_RAYS = 28;
 const AURORA_REDUCED = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-const AURORA_HARMONICS = [ { amp: 0.7, k: 2.1, w: 0.35, ph: 0.0 },
-  { amp: 0.4, k: 4.3, w: 0.5, ph: 1.7 }, { amp: 0.22, k: 7.7, w: 0.75, ph: 3.3 } ];
+const AURORA_HARMONICS = [ { amp: 0.6, k: 2.1, w: 0.35, ph: 0.0 },
+  { amp: 0.35, k: 4.3, w: 0.5, ph: 1.7 }, { amp: 0.2, k: 7.7, w: 0.75, ph: 3.3 } ];
 const AURORA_RAY_COLORS = [ "16, 185, 129", "34, 211, 238", "168, 85, 247" ];
-const AURORA_RIBS = [ { dLat: 0.0, w: 1.0, a: 1.0 }, { dLat: 1.6, w: 0.45, a: 0.5 }, { dLat: 2.8, w: 0.26, a: 0.3 } ];
+const AURORA_LAYERS = [ { dLat: -1.2, half: 1.4, c: "16, 185, 129", a: 0.10 },
+  { dLat: 0.2, half: 1.6, c: "52, 211, 153", a: 0.06 }, { dLat: 1.6, half: 1.2, c: "168, 85, 247", a: 0.04 } ];
 const auroraBuf = document.createElement("canvas");
 let auroraRAF = null;
 let auroraStart = 0;
@@ -324,11 +326,13 @@ function initAurora() {
       ph: Math.random() * Math.PI * 2, sp: 0.5 + 1.2 * Math.random(), c: i % 3 });
   }
 }
-function auroraBand(lng) {
-  const th = (lng - AURORA_LON0) * AURORA_LNG_SCALE * Math.PI / 180;
-  const eq = 69.5 - 4.5 * Math.cos(th) - 1.2 * AURORA_KP;
-  const pole = 75.0 - 3.5 * Math.cos(th) - 0.4 * AURORA_KP;
-  return [eq, pole];
+function auroraFade(lon) {
+  const f = Math.sin(Math.PI * (lon - AURORA_LON_MIN) / (AURORA_LON_MAX - AURORA_LON_MIN));
+  return Math.max(0.0, Math.min(1.0, f));
+}
+function auroraLatCenter(lon, t) {
+  const s = (lon - AURORA_LON_MIN) / (AURORA_LON_MAX - AURORA_LON_MIN);
+  return AURORA_LAT_CENTER + 0.8 * Math.sin(Math.PI * s) + auroraWave(s, t) * 0.6;
 }
 function auroraWave(s, t) {
   let v = 0;
@@ -345,44 +349,40 @@ function drawAuroraBuffer(w, h, t) {
   if (!(MAP.scale > 0)) return;
   bctx.globalCompositeOperation = "lighter";
   const invKX = 1 / (KX * MAP.scale);
-  const breathe = 0.6 + 0.4 * Math.sin(t * 0.6);
-  for (let x = -30; x <= w + 30; x += 13) {
-    const lng = (x - MAP.offX) * invKX;
-    if (lng < -45 || lng > 85) continue;
-    const s = (lng - AURORA_LON0) * AURORA_LNG_SCALE / 360;
-    const b = auroraBand(lng);
-    const off = auroraWave(s, t) * 1.5;
-    const latEq = b[0] + off, latPole = b[1] + off;
-    const latMid = (latEq + latPole) / 2, halfLat = (latPole - latEq) / 2;
-    const flick = 0.7 + 0.3 * Math.sin(t * 1.7 + s * 9.0);
-    for (let r = 0; r < AURORA_RIBS.length; r++) {
-      const rib = AURORA_RIBS[r];
-      const pc = toScreen(lng, latMid + rib.dLat);
-      const pp = toScreen(lng, latMid + rib.dLat + halfLat * rib.w);
-      const rad = Math.max(6, Math.abs(pc[1] - pp[1])) + 12;
-      const alpha = rib.a * flick * breathe;
+  const breathe = 0.7 + 0.3 * Math.sin(t * 0.6);
+  for (let x = -20; x <= w + 20; x += 12) {
+    const lon = (x - MAP.offX) * invKX;
+    if (lon < AURORA_LON_MIN || lon > AURORA_LON_MAX) continue;
+    const fade = auroraFade(lon);
+    if (fade <= 0.002) continue;
+    const cLat = auroraLatCenter(lon, t);
+    const flick = 0.75 + 0.25 * Math.sin(t * 1.6 + lon * 0.7);
+    for (let L = 0; L < AURORA_LAYERS.length; L++) {
+      const ly = AURORA_LAYERS[L];
+      const pc = toScreen(lon, cLat + ly.dLat);
+      const pp = toScreen(lon, cLat + ly.dLat + ly.half);
+      const rad = Math.max(8, Math.abs(pc[1] - pp[1])) + 10;
+      const a = ly.a * fade * breathe * flick;
       const grad = bctx.createRadialGradient(x, pc[1], 0, x, pc[1], rad);
-      grad.addColorStop(0.0, "rgba(52, 211, 153, " + (0.16 * alpha).toFixed(3) + ")");
-      grad.addColorStop(0.55, "rgba(34, 211, 238, " + (0.08 * alpha).toFixed(3) + ")");
-      grad.addColorStop(1.0, "rgba(16, 185, 129, 0)");
+      grad.addColorStop(0.0, "rgba(" + ly.c + ", " + a.toFixed(4) + ")");
+      grad.addColorStop(1.0, "rgba(" + ly.c + ", 0)");
       bctx.fillStyle = grad;
       bctx.beginPath(); bctx.arc(x, pc[1], rad, 0, Math.PI * 2); bctx.fill();
     }
   }
   for (const rd of auroraSeed) {
-    const x = rd.f * (w + 60) - 30;
-    const lng = (x - MAP.offX) * invKX;
-    if (lng < -45 || lng > 85) continue;
-    const s = (lng - AURORA_LON0) * AURORA_LNG_SCALE / 360;
-    const b = auroraBand(lng);
-    const off = auroraWave(s, t) * 1.5;
-    const base = toScreen(lng, b[0] + off);
+    const lon = AURORA_LON_MIN + rd.f * (AURORA_LON_MAX - AURORA_LON_MIN);
+    const fade = auroraFade(lon);
+    if (fade <= 0.002) continue;
+    const x = toScreen(lon, 0)[0];
+    const base = toScreen(lon, auroraLatCenter(lon, t));
     const pulse = 0.5 + 0.5 * Math.sin(t * rd.sp + rd.ph);
-    const top = base[1] - rd.h - 18 * pulse;
+    const top = base[1] - rd.h - 16 * pulse;
     const col = AURORA_RAY_COLORS[rd.c];
+    const a = 0.10 * fade * pulse;
     const grad = bctx.createLinearGradient(x, base[1], x, top);
     grad.addColorStop(0.0, "rgba(" + col + ", 0)");
-    grad.addColorStop(0.5, "rgba(" + col + ", " + (0.22 * pulse).toFixed(3) + ")");
+    grad.addColorStop(0.5, "rgba(" + col + ", " + a.toFixed(4) + ")");
     grad.addColorStop(1.0, "rgba(" + col + ", 0)");
     bctx.fillStyle = grad;
     bctx.fillRect(x - rd.w / 2, top, rd.w, base[1] - top);
