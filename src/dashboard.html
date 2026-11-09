@@ -279,72 +279,56 @@ function ringPath(ctx, ring) {
   ctx.closePath();
 }
 function drawLand(ctx, w, h) {
+  ctx.beginPath();
   for (const iso of Object.keys(MAP.proj)) {
-    const rings = MAP.proj[iso];
-    for (const ring of rings) { ctx.beginPath(); ringPath(ctx, ring); ctx.fillStyle = "#131C28"; ctx.fill(); }
-    ctx.save();
-    ctx.strokeStyle = "#38BDF8"; ctx.lineWidth = 1.2;
-    ctx.shadowColor = "#0284C7"; ctx.shadowBlur = 6;
-    for (const ring of rings) { ctx.beginPath(); ringPath(ctx, ring); ctx.stroke(); }
-    ctx.restore();
+    for (const ring of MAP.proj[iso]) ringPath(ctx, ring);
   }
+  ctx.fillStyle = "#131C28"; ctx.fill();
+  ctx.save();
+  ctx.shadowColor = "#0284C7"; ctx.shadowBlur = 6;
+  ctx.strokeStyle = "#38BDF8"; ctx.lineWidth = 1.2;
+  ctx.stroke();
+  ctx.restore();
 }
 
-const DEG2RAD = Math.PI / 180, RAD2DEG = 180 / Math.PI;
-const GEO_POLE_LAT = 80.5, GEO_POLE_LNG = -72.6;
-function geomagneticToGeographic(geomLatDeg, geomLonRad) {
-  const phi0 = GEO_POLE_LAT * DEG2RAD, lam0 = GEO_POLE_LNG * DEG2RAD;
-  const phiG = geomLatDeg * DEG2RAD, lamG = geomLonRad;
-  const sinPhi = Math.sin(phi0) * Math.sin(phiG) + Math.cos(phi0) * Math.cos(phiG) * Math.cos(lamG);
-  const phi = Math.asin(Math.max(-1, Math.min(1, sinPhi)));
-  const y = Math.cos(phiG) * Math.sin(lamG);
-  const x = Math.cos(phi0) * Math.sin(phiG) - Math.sin(phi0) * Math.cos(phiG) * Math.cos(lamG);
-  let lam = lam0 + Math.atan2(y, x);
-  lam = ((lam + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
-  return [lam * RAD2DEG, phi * RAD2DEG];
+const AURORA_POLE_LAT = 80.5 * Math.PI / 180;
+const AURORA_POLE_LON = -72.6 * Math.PI / 180;
+const AURORA_KP = 2.5;
+function auroraGeo(phiRad, theta) {
+  const sinLat = Math.sin(AURORA_POLE_LAT) * Math.sin(phiRad) + Math.cos(AURORA_POLE_LAT) * Math.cos(phiRad) * Math.cos(theta);
+  const latGeo = Math.asin(Math.max(-1.0, Math.min(1.0, sinLat))) * 180 / Math.PI;
+  const y = Math.sin(theta) * Math.cos(phiRad);
+  const x = Math.cos(AURORA_POLE_LAT) * Math.sin(phiRad) - Math.sin(AURORA_POLE_LAT) * Math.cos(phiRad) * Math.cos(theta);
+  const lonGeo = (AURORA_POLE_LON + Math.atan2(y, x)) * 180 / Math.PI;
+  return [lonGeo, latGeo];
 }
-function drawAurora(ctx, w, h) {
-  const kp = 2;
-  const samples = 360;
-  const equator = [], poleward = [];
-  let prevLng = null, offset = 0;
+function drawStarkovAurora(ctx) {
+  const samples = 64;
+  const poleward = [], equator = [];
+  let prevLon = null, offset = 0;
   for (let i = 0; i <= samples; i++) {
     const theta = 2 * Math.PI * i / samples;
-    const phiEq = 69.5 - 4.5 * Math.cos(theta) - 1.2 * kp;
-    const phiPole = 75.0 - 3.5 * Math.cos(theta) - 0.4 * kp;
-    const eq = geomagneticToGeographic(phiEq, theta);
-    const po = geomagneticToGeographic(phiPole, theta);
-    if (prevLng !== null) {
-      const d = eq[0] - prevLng;
+    const phiEqRad = (69.5 - 4.5 * Math.cos(theta) - 1.2 * AURORA_KP) * Math.PI / 180;
+    const phiPoleRad = (75.0 - 3.5 * Math.cos(theta) - 0.4 * AURORA_KP) * Math.PI / 180;
+    const eq = auroraGeo(phiEqRad, theta);
+    const po = auroraGeo(phiPoleRad, theta);
+    if (prevLon !== null) {
+      const d = eq[0] - prevLon;
       if (d > 180) offset -= 360; else if (d < -180) offset += 360;
     }
-    prevLng = eq[0];
-    equator.push([eq[0] + offset, eq[1]]);
-    poleward.push([po[0] + offset, po[1]]);
+    prevLon = eq[0];
+    poleward.push(toScreen(po[0] + offset, po[1]));
+    equator.push(toScreen(eq[0] + offset, eq[1]));
   }
-  const pts = poleward.concat(equator.slice().reverse()).map((pt) => toScreen(pt[0], pt[1]));
-  let minY = 1e9, maxY = -1e9;
-  for (const s of pts) { if (s[1] < minY) minY = s[1]; if (s[1] > maxY) maxY = s[1]; }
-  const grad = ctx.createLinearGradient(0, minY, 0, maxY);
-  grad.addColorStop(0, "rgba(168, 85, 247, 0.05)");
-  grad.addColorStop(1, "rgba(16, 185, 129, 0.08)");
-  ctx.save();
-  ctx.beginPath(); ctx.rect(0, 0, w, h); ctx.clip();
+  const pts = poleward.concat(equator.slice().reverse());
   ctx.beginPath();
   pts.forEach((s, i) => { if (i === 0) ctx.moveTo(s[0], s[1]); else ctx.lineTo(s[0], s[1]); });
   ctx.closePath();
-  ctx.fillStyle = grad; ctx.fill();
-  ctx.strokeStyle = "rgba(168, 85, 247, 0.10)"; ctx.lineWidth = 1; ctx.stroke();
-  ctx.restore();
-}
-function drawAurora(ctx, w) {
-  const yTop = toScreen(0, 71.5)[1], yBot = toScreen(0, 65.0)[1];
-  ctx.fillStyle = "rgba(52, 211, 153, 0.045)";
-  ctx.fillRect(0, Math.min(yTop, yBot), w, Math.abs(yBot - yTop));
-  ctx.setLineDash([7, 5]); ctx.strokeStyle = "rgba(102,194,165,0.7)"; ctx.lineWidth = 1.4;
-  ctx.beginPath(); ctx.moveTo(0, yTop); ctx.lineTo(w, yTop); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(0, yBot); ctx.lineTo(w, yBot); ctx.stroke();
-  ctx.setLineDash([]);
+  ctx.fillStyle = "rgba(16, 185, 129, 0.22)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(52, 211, 153, 0.65)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
 }
 function drawParallels(ctx, w) {
   const marks = [ [60, C.muted, "60 N"], [65, C.active, "65 N AURORAL OVAL"], [70, C.muted, "70 N"], [74, C.offline, "74 N SVALBARD"] ];
@@ -398,15 +382,15 @@ function kmToPixels(lat, km) {
 function drawCoverageRings(ctx) {
   const stations = filteredStations();
   ctx.save();
-  ctx.globalCompositeOperation = "screen";
+  ctx.shadowBlur = 0;
+  ctx.shadowColor = "transparent";
+  ctx.globalCompositeOperation = "source-over";
   for (const st of stations) {
     const p = toScreen(st.lng, st.lat);
     const r15 = kmToPixels(st.lat, 15), r30 = kmToPixels(st.lat, 30);
-    ctx.shadowColor = "#00F0FF"; ctx.shadowBlur = 4;
-    ctx.strokeStyle = "rgba(0, 240, 255, 0.28)"; ctx.lineWidth = 1.2;
+    ctx.strokeStyle = "rgba(0, 240, 255, 0.4)"; ctx.lineWidth = 1.0;
     ctx.beginPath(); ctx.arc(p[0], p[1], r15, 0, Math.PI * 2); ctx.stroke();
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = "rgba(245, 158, 11, 0.18)"; ctx.lineWidth = 1.0;
+    ctx.strokeStyle = "rgba(245, 158, 11, 0.25)"; ctx.lineWidth = 1.0;
     ctx.beginPath(); ctx.arc(p[0], p[1], r30, 0, Math.PI * 2); ctx.stroke();
   }
   ctx.restore();
@@ -566,7 +550,7 @@ function renderTab2() {
   drawMapBackdrop(ctx, w, h);
   if (!MAP.fit) focusById("mainland", w, h);
   drawLand(ctx, w, h);
-  drawAurora(ctx, w, h);
+  drawStarkovAurora(ctx);
   drawParallels(ctx, w);
   if (state.layers.rings) drawCoverageRings(ctx);
   drawObservatories(ctx);
